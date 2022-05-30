@@ -1,7 +1,14 @@
 # construct the data
 
 #library(mrds)
-devtools::load_all("~/current/mrds")
+
+# Dave's way of accessing mrds
+#devtools::load_all("~/current/mrds")
+
+# accessing mrds via github
+#install.packages("remotes")
+library(remotes)
+install_github("DistanceDevelopment/mrds")
 
 library(Hmisc)
 library(stringr)
