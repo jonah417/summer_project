@@ -15,7 +15,7 @@ library(stringr)
 library(readdst)
 
 # based on files from from LJT
-source("create.mcds.command.file.r")
+source("create.mcds.command.file.R")
 source("get_data.R")
 source("get_mcds_results.R")
 source("get_mrds_results.R")
