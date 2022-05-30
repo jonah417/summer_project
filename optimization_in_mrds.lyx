@@ -1,0 +1,372 @@
+#LyX 2.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 544
+\begin_document
+\begin_header
+\save_transient_properties true
+\origin unavailable
+\textclass article
+\begin_preamble
+\setcitestyle{round}
+
+% get independent symbol
+\def\independenT#1#2{\mathrel{\rlap{$#1#2$}\mkern2mu{#1#2}}}
+\newcommand{\independent}{\protect\mathpalette{\protect\independenT}{\perp}}
+\end_preamble
+\use_default_options true
+\begin_modules
+knitr
+\end_modules
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman "default" "default"
+\font_sans "default" "default"
+\font_typewriter "default" "default"
+\font_math "auto" "auto"
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100 100
+\font_tt_scale 100 100
+\use_microtype false
+\use_dash_ligatures true
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command bibtex
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry true
+\use_package amsmath 1
+\use_package amssymb 1
+\use_package cancel 1
+\use_package esint 1
+\use_package mathdots 1
+\use_package mathtools 1
+\use_package mhchem 1
+\use_package stackrel 1
+\use_package stmaryrd 1
+\use_package undertilde 1
+\cite_engine natbib
+\cite_engine_type authoryear
+\biblio_style plainnat
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\justification true
+\use_refstyle 1
+\use_minted 0
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\leftmargin 2cm
+\topmargin 2cm
+\rightmargin 3cm
+\bottommargin 2cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\is_math_indent 0
+\math_numbering_side default
+\quotes_style english
+\dynamic_quotes 0
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+Optimization in 
+\family typewriter
+mrds
+\end_layout
+
+\begin_layout Author
+David L Miller
+\end_layout
+
+\begin_layout Date
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+today
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Abstract
+An overview of how detection functions are optimized in 
+\family typewriter
+mrds
+\family default
+.
+\end_layout
+
+\begin_layout Section*
+
+\family typewriter
+mrds
+\family default
+ versions 
+\begin_inset Formula $\leq$
+\end_inset
+
+ 2.2.4
+\end_layout
+
+\begin_layout Standard
+All the action centres around two functions: 
+\family typewriter
+detfct.fit
+\family default
+ (an outer iteration) and 
+\family typewriter
+detfct.fit.opt
+\family default
+ (inner iteration).
+ Here I'll just talk about the procedure in the outer/inner terms for generality.
+\end_layout
+
+\begin_layout Subsection*
+Outer (
+\family typewriter
+detfct.fit
+\family default
+)
+\end_layout
+
+\begin_layout Itemize
+If there are no adjustments or a uniform key is being used, go to 
+\series bold
+Inner
+\series default
+.
+\end_layout
+
+\begin_layout Itemize
+If adjustments are being used:
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+Loop over optimizing these subsets of parameters, while within some max
+ number of outer iterations:
+\begin_inset Marginal
+status collapsed
+
+\begin_layout Plain Layout
+Note that this optimisation is performed by holding the non-
+\begin_inset Quotes erd
+\end_inset
+
+active
+\begin_inset Quotes erd
+\end_inset
+
+ parameters constant within the optimisation, not optimising the sub-problem
+ with a reduced parameter space.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_deeper
+\begin_layout Enumerate
+adjustment parameters (keeping key parameters constant)
+\end_layout
+
+\begin_layout Enumerate
+key parameters (keeping adjustment parameters constant)
+\end_layout
+
+\begin_layout Enumerate
+all parameters
+\end_layout
+
+\begin_layout Standard
+For each of (a)-(c):
+\begin_inset Separator plain
+\end_inset
+
+
+\end_layout
+
+\begin_layout Enumerate
+Run 
+\series bold
+Inner
+\series default
+.
+\end_layout
+
+\begin_layout Enumerate
+Check convergence as 
+\begin_inset Formula $\frac{\left|\boldsymbol{\beta}_{\text{new}}-\boldsymbol{\beta}_{\text{last}}\right|}{(\epsilon+\left|\boldsymbol{\beta}_{\text{last}}\right|)}<\epsilon/\sqrt{n}$
+\end_inset
+
+, if so 
+\series bold
+break
+\series default
+.
+\end_layout
+
+\begin_layout Enumerate
+Check number of iterations, if exceeded, 
+\series bold
+break
+\series default
+.
+\end_layout
+
+\end_deeper
+\end_deeper
+\begin_layout Subsection*
+Inner (
+\family typewriter
+detfct.fit.opt
+\family default
+)
+\end_layout
+
+\begin_layout Itemize
+While bounded
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+While not converged
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+Do one of: 
+\end_layout
+
+\begin_deeper
+\begin_layout Enumerate
+Constrained estimation (
+\family typewriter
+solnp)
+\end_layout
+
+\begin_layout Enumerate
+Unconstrained estimation (
+\family typewriter
+optimx
+\family default
+): minimize the negative log-likelihood wrt 
+\begin_inset Formula $\boldsymbol{\beta}$
+\end_inset
+
+ to obtain 
+\begin_inset Formula $\widetilde{\boldsymbol{\beta}}$
+\end_inset
+
+.
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Check convergence (from optimizer diagnostics).
+\end_layout
+
+\begin_layout Itemize
+If we haven't converged:
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+Check we haven't done too many refits.
+\end_layout
+
+\begin_layout Itemize
+Jiggle the starting values according to 
+\begin_inset Formula $\boldsymbol{\beta}_{\text{new}}=\widetilde{\boldsymbol{\beta}}\mathbf{r}$
+\end_inset
+
+ where 
+\begin_inset Formula $\mathbf{r}\sim\text{Unif}(\text{sign}\mathbf{l}-1,\text{sign}\mathbf{u}+1)$
+\end_inset
+
+ where 
+\series bold
+
+\begin_inset Formula $\mathbf{l}$
+\end_inset
+
+
+\series default
+ and 
+\begin_inset Formula $\mathbf{u}$
+\end_inset
+
+ are the vectors of lower and upper bounds, respectively.
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Check if any element of 
+\begin_inset Formula $\widetilde{\boldsymbol{\beta}}$
+\end_inset
+
+ is at any bound
+\end_layout
+
+\begin_layout Itemize
+If the bounds were not set by the user and any element of 
+\begin_inset Formula $\widetilde{\boldsymbol{\beta}}$
+\end_inset
+
+ at any of its the bounds (
+\begin_inset Formula $\mathbf{u}_{s}$
+\end_inset
+
+ being the upper bounds for which 
+\begin_inset Formula $\left|\widetilde{\boldsymbol{\beta}}-\mathbf{u}\right|<10^{-6}$
+\end_inset
+
+ and equivalently for 
+\begin_inset Formula $\mathbf{l}_{s}$
+\end_inset
+
+), set the new bound(s) to be 
+\begin_inset Formula $\mathbf{u}_{s}^{*}=\mathbf{u}_{s}+0.5\left|\mathbf{u}_{s}\right|$
+\end_inset
+
+ and/or 
+\begin_inset Formula $\mathbf{l}_{s}^{*}=\mathbf{l}_{s}+0.5\left|\mathbf{l}_{s}\right|$
+\end_inset
+
+.
+\end_layout
+
+\end_deeper
+\end_deeper
+\end_body
+\end_document
