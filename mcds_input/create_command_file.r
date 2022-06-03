@@ -17,17 +17,23 @@ create_command_file(dsmodel=call(),mrmodel=call(),data,method,
   cat("None", file=command.file.name, "\n", append=TRUE)
   cat("None", file=command.file.name, "\n", append=TRUE)
   cat("OPTIONS;", file=command.file.name, "\n", append=TRUE)
-  cat("TYPE=", detfunc.options$transect, ";",
-      file=command.file.name, "\n", append=TRUE)
   
   # fill in option section
-  if(meta.data$point == TRUE){
-    cat("DISTANCE=RADIAL /UNITS='Meters' /WIDTH=", meta.data$width,
-        ";", file=command.file.name, "\n", append=TRUE)
-  }else{
+  # !find whether cue counting was used, in which case TYPE=CUE
+  
+  transect_type <- toupper(data$transect)
+  cat("TYPE=", transect_type, ";",
+      file=command.file.name, "\n", append=TRUE)
+
+  if(grepl("LINE", transect_type)){
     cat("DISTANCE=PERP /UNITS='Meters' /WIDTH=", meta.data$width,
         ";", file=command.file.name, "\n", append=TRUE)
+  }else{
+    cat("DISTANCE=RADIAL /UNITS='Meters' /WIDTH=", meta.data$width,
+        ";", file=command.file.name, "\n", append=TRUE)
   }
+  
+  # !if cue counts are used, state cue rate and SE
   
   # define whether there are clusters
   if(grepl("(^|,)size($|,)", data$fieldnames)){
@@ -36,5 +42,9 @@ create_command_file(dsmodel=call(),mrmodel=call(),data,method,
     cat("OBJECT=SINGLE;", file=command.file.name, "\n", append=TRUE)
   }
   
+  # moving onto the data section
+  
+  cat("END;", file=command.file.name, "\n", append=TRUE)
+  cat("DATA /STRUCTURE=FLAT;", file=command.file.name, "\n", append=TRUE)
   
 }
