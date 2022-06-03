@@ -274,6 +274,8 @@
 #' plot(model,main="Dual observer binned point data",new=FALSE)
 #'
 #' }
+#' 
+ 
 ddf <- function(dsmodel=call(), mrmodel=call(),data, method="ds",
                 meta.data=list(), control=list()){
   # Functions Used: ddf.ds, ddf.io, ddf.trial, ddf.io.fi, ddf.trial.fi,
@@ -281,7 +283,10 @@ ddf <- function(dsmodel=call(), mrmodel=call(),data, method="ds",
 
   # Save current user options and then set design contrasts to treatment
   # style
+  
+  # options() just tells save.options to store the current options
   save.options <- options()
+  # this is setting contrasts back to its default
   options(contrasts=c("contr.treatment", "contr.poly"))
 
   # order data to meet expectations of the code
@@ -292,7 +297,8 @@ ddf <- function(dsmodel=call(), mrmodel=call(),data, method="ds",
   # have been specified
   method <- match.arg(method,c("ds","io","io.fi","trial","trial.fi",
                                "rem","rem.fi"))
-
+  
+  # extracts the method and if it's not fi, it needs dsmodel
   if(method %in% c("ds","io","trial","rem")){
     if(missing(dsmodel)){
       stop("For method=",method,", dsmodel must be specified")
