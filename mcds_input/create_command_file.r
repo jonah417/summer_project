@@ -5,8 +5,8 @@
 # SMP_LABEL, SMP_EFFORT (required for mcds)
 # optionally
 
-create_command_file(dsmodel=call(),mrmodel=call(),data,method,
-                    meta.data,control) {
+create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
+                                method,meta.data,control) {
   # !create file name
   
   command.file.name <- tempfile(pattern="cmdtmp", tmpdir="tmp_files",
@@ -66,6 +66,6 @@ create_command_file(dsmodel=call(),mrmodel=call(),data,method,
   cat("END;", file=command.file.name, "\n", append=TRUE)
   cat("DATA /STRUCTURE=FLAT;", file=command.file.name, "\n", append=TRUE)
   
-  
+  # 
   
 }

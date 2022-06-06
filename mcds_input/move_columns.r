@@ -31,20 +31,29 @@ move_fields <- function(data,required_cols,cluster=FALSE) {
     required_cols <- append(required_cols,"size")
   }
   
-  # add effort column in some form
+  # find which field will be used for the effort and change the name 
+  # to match field name in mcds
   if(TRUE %in% grepl("^Effort$",colnames(data))){
-    required_cols <- append(required_cols,"Effort")
+    colnames(data)[colnames(data)=="Effort"] <- "SMP_EFFORT"
   }else if(TRUE %in% grepl("^Search.time$",colnames(data))){
-    required_cols <- append(required_cols,"Search.time")
+    colnames(data)[colnames(data)=="Search.time"] <- "SMP_EFFORT"
   }
+  # add effort field to required fields
+  required_cols <- append(required_cols,"SMP_EFFORT")
+  
   
   # check if other defined fields are columns in the dataset
   if(TRUE %in% grepl("^Region.Label$",colnames(data))){
-    required_cols <- append(required_cols,"Region.Label")
+    colnames(data)[colnames(data)=="Region.Label"] <- "STR_LABEL"
+    required_cols <- append(required_cols,"STR_LABEL")
   }
   if(TRUE %in% grepl("^Area$",colnames(data))){
-    required_cols <- append(required_cols,"Area")
+    colnames(data)[colnames(data)=="Area"] <- "STR_AREA"
+    required_cols <- append(required_cols,"STR_AREA")
   }
+  
+  # change sample label field name to match mcds
+  colnames(data)[colnames(data)=="Sample.Label"] <- "SMP_LABEL"
   
   # separate all remaining fields
   extra_cols <- colnames(data)
@@ -55,6 +64,8 @@ move_fields <- function(data,required_cols,cluster=FALSE) {
   
   # rearranging the columns in the dataset
   data <- data[new_cols]
+  
+  # !set all field names to uppercase
   
   # return the dataset with rearranged columns
   return(data)
