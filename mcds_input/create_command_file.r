@@ -43,8 +43,6 @@ create_command_file(dsmodel=call(),mrmodel=call(),data,method,
   
   # define whether there are clusters
   if(TRUE %in% grepl("^size$",colnames(data))){
-    # the fact that data is clustered is used later on, so this
-    # boolean prevents us from having to check each time
     cluster <- TRUE
     cat("OBJECT=CLUSTER;", file=command.file.name, "\n", append=TRUE)
   }else{
