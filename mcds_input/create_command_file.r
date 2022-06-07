@@ -88,7 +88,7 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   fields[colnames(data)=="Sample.Label"] <- "SMP_LABEL"
   
   # change all fields to upper case and combine to one string
-  fields <- paste(toupper(fields), collapse=", ")
+  fields <- paste(toupper(fields), collapse=",")
   cat("FIELDS=", fields, file=command.file.name, "\n", append=TRUE)
   
   # !how to define a cluster size covariate?
@@ -112,9 +112,42 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   cat("INFILE=", data.file.name, "/NOECHO;", file=command.file.name, 
       "\n", append=TRUE)
   cat("END;", file=command.file.name, "\n", append=TRUE)
+  
+  cat("ESTIMATE /KEY=", file=command.file.name, append=TRUE)
+  if(dsmodel$key == "hn"){
+    cat("HNORMAL", file=command.file.name, append=TRUE)
+  }else if(dsmodel$key == "hr"){
+    cat("HAZARD", file=command.file.name, append=TRUE)
+  }else if(dsmodel$key == "unif"){
+    cat("UNIFORM", file=command.file.name, append=TRUE)
+  }
+  # !not sure about gamma vs negative exponential
+  
+  # add adjustment terms
+  if(dsmodel$adj.series == "cos"){
+    cat(" /ADJUST=COSINE", file=command.file.name, append=TRUE)
+  }else if(dsmodel$adj.series == "herm"){
+    cat(" /ADJUST=HERMITE", file=command.file.name, append=TRUE)
+  }else if(dsmodel$adj.series == "poly"){
+    cat(" /ADJUST=POLY", file=command.file.name, append=TRUE)
+  }
+  
+  cat(" /ORDER=", paste(dsmodel$adj.order,collapse=","), 
+      file=command.file.name, append=TRUE)
+  
+  if(dsmodel$adj.scale == "width"){
+    cat(" /ADJSTD=W", file=command.file.name, append=TRUE)
+  }else{
+    cat(" /ADJSTD=SIGMA", file=command.file.name, append=TRUE)
+  }
+  
+  # defining upper and lower bounds for parameters
+  if(control$lowerbounds != ""){
+    cat(" /LOWER=", paste(control$lowerbounds,collapse=","), 
+        file=command.file.name, append=TRUE)
+  }
+  if(control$upperbounds != ""){
+    cat(" /UPPER=", paste(control$upperbounds,collapse=","), 
+        file=command.file.name, append=TRUE)
+  }
 }
-
-
-test_data <- golftees
-core_cols <- c("object","observer","detected","distance","Sample.Label")
-rearrange_tees <- move_columns(test_data,core_cols)
