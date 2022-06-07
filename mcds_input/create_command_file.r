@@ -57,7 +57,8 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   # !not sure if the output levels match completely
   output_info_levels <- c("SUMMARY","RESULTS","SELECTION","ALL")
   specified_output_level <- output_info_levels[data$showit-1]
-  cat(specified_output_level, file=command.file.name, "\n", append=TRUE)
+  cat("PRINT=", specified_output_level, file=command.file.name, "\n", 
+      append=TRUE)
   
   # !the selection section for model fitting; is that specified in ddf?
   
@@ -66,6 +67,54 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   cat("END;", file=command.file.name, "\n", append=TRUE)
   cat("DATA /STRUCTURE=FLAT;", file=command.file.name, "\n", append=TRUE)
   
-  # 
+  # !this is only necessary if fields appear as they do in example data
+  # create a vector of fields, renamed to match mcds
+  fields <- colnames(data)
+  # find which field will be used for the effort and change the name 
+  # to match field name in mcds
+  if(TRUE %in% grepl("^Effort$",colnames(data))){
+    fields[colnames(data)=="Effort"] <- "SMP_EFFORT"
+  }else if(TRUE %in% grepl("^Search.time$",colnames(data))){
+    fields[colnames(data)=="Search.time"] <- "SMP_EFFORT"
+  }
+  # check if other defined fields are columns in the dataset
+  if(TRUE %in% grepl("^Region.Label$",colnames(data))){
+    fields[colnames(data)=="Region.Label"] <- "STR_LABEL"
+  }
+  if(TRUE %in% grepl("^Area$",colnames(data))){
+    fields[colnames(data)=="Area"] <- "STR_AREA"
+  }
+  # change sample label field name to match mcds
+  fields[colnames(data)=="Sample.Label"] <- "SMP_LABEL"
   
+  # change all fields to upper case and combine to one string
+  fields <- paste(toupper(fields), collapse=", ")
+  cat("FIELDS=", fields, file=command.file.name, "\n", append=TRUE)
+  
+  # !how to define a cluster size covariate?
+  
+  # deal with factors
+  # !would have to add factors as a part of meta.data
+  if(meta.data$factors != ""){
+    # run through each of the factors
+    for(i in 1:length(meta.data$factors)){
+      # find which field of the data the ith factor is
+      field_index <- grep(meta.data$factors[i]$field_name,colnames(data))
+      # find the corresponding renamed field
+      field_name <- fields[field_index]
+      cat("FACTOR /NAME=", toupper(field_name), "/LEVELS=",
+          meta.data$factors[field_index]$levels, "/LABELS=", 
+          meta.data$factors[field_index]$labels, file=command.file.name, 
+          "\n", append=TRUE)
+    }
+  }
+  
+  cat("INFILE=", data.file.name, "/NOECHO;", file=command.file.name, 
+      "\n", append=TRUE)
+  cat("END;", file=command.file.name, "\n", append=TRUE)
 }
+
+
+test_data <- golftees
+core_cols <- c("object","observer","detected","distance","Sample.Label")
+rearrange_tees <- move_columns(test_data,core_cols)
