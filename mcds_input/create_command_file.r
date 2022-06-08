@@ -7,11 +7,14 @@
 
 create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
                                 method,meta.data,control) {
-  # !create file name
+  # create data file to pass to mcds
+  data.file.name <- tempfile(pattern="data", tmpdir="tmp_files",
+                             fileext=".csv")
+  write.csv(data,"tmp_file\\data.csv",row.names=FALSE)
   
+  # create command file
   command.file.name <- tempfile(pattern="cmdtmp", tmpdir="tmp_files",
                                 fileext=".txt")
-  # create the command file
   file.create(command.file.name)
   # output commands to it
   cat("out.txt", file=command.file.name, "\n", append=TRUE)
@@ -23,23 +26,15 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   cat("OPTIONS;", file=command.file.name, "\n", append=TRUE)
   
   # fill in option section
-  # !find whether cue counting was used, in which case TYPE=CUE
   
-  # !this needs redone with meta.data
   # !consider the case where TYPE="LINE" but DISTANCE="RADIAL"?
-  transect_type <- toupper(data$transect)
-  cat("TYPE=", transect_type, ";",
-      file=command.file.name, "\n", append=TRUE)
-
-  if(grepl("LINE", transect_type)){
-    cat("DISTANCE=PERP /UNITS='Meters' /WIDTH=", meta.data$width,
-        ";", file=command.file.name, "\n", append=TRUE)
-  }else{
+  if(meta.data$point == TRUE){
     cat("DISTANCE=RADIAL /UNITS='Meters' /WIDTH=", meta.data$width,
         ";", file=command.file.name, "\n", append=TRUE)
+  }else{
+    cat("DISTANCE=PERP /UNITS='Meters' /WIDTH=", meta.data$width,
+        ";", file=command.file.name, "\n", append=TRUE)
   }
-  
-  # !if cue counts are used, state cue rate and SE
   
   # define whether there are clusters
   if(TRUE %in% grepl("^size$",colnames(data))){
@@ -60,8 +55,6 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   cat("PRINT=", specified_output_level, file=command.file.name, "\n", 
       append=TRUE)
   
-  # !the selection section for model fitting; is that specified in ddf?
-  
   # moving onto the data section
   
   cat("END;", file=command.file.name, "\n", append=TRUE)
@@ -76,7 +69,18 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     fields[colnames(data)=="Effort"] <- "SMP_EFFORT"
   }else if(TRUE %in% grepl("^Search.time$",colnames(data))){
     fields[colnames(data)=="Search.time"] <- "SMP_EFFORT"
+  }else{
+    data$EFFORT <- rep(1,nrow(data))
+    append(fields,"EFFORT")
   }
+  # find if Sample.Label is a field; if not, add it
+  if(TRUE %in% grepl("^Sample.Label$",colnames(data))){
+    fields[colnames(data)=="Sample.Label"] <- "SMP_LABEL"
+  }else{
+    data$SMP_LABEL <- rep(1,nrow(data))
+    append(fields,"SMP_LABEL")
+  }
+  
   # check if other defined fields are columns in the dataset
   if(TRUE %in% grepl("^Region.Label$",colnames(data))){
     fields[colnames(data)=="Region.Label"] <- "STR_LABEL"
@@ -84,8 +88,6 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   if(TRUE %in% grepl("^Area$",colnames(data))){
     fields[colnames(data)=="Area"] <- "STR_AREA"
   }
-  # change sample label field name to match mcds
-  fields[colnames(data)=="Sample.Label"] <- "SMP_LABEL"
   
   # change all fields to upper case and combine to one string
   fields <- paste(toupper(fields), collapse=",")
