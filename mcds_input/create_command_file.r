@@ -55,6 +55,10 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   cat("PRINT=", specified_output_level, file=command.file.name, "\n", 
       append=TRUE)
   
+  # the user will specify the adjustment term selection
+  cat("SELECTION=SPECIFY;", file=command.file.name, "\n", 
+      append=TRUE)
+  
   # moving onto the data section
   
   cat("END;", file=command.file.name, "\n", append=TRUE)
@@ -95,27 +99,19 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   
   # !how to define a cluster size covariate?
   
-  # deal with factors
-  # !would have to add factors as a part of meta.data
-  if(meta.data$factors != ""){
-    # run through each of the factors
-    for(i in 1:length(meta.data$factors)){
-      # find which field of the data the ith factor is
-      field_index <- grep(meta.data$factors[i]$field_name,colnames(data))
-      # find the corresponding renamed field
-      field_name <- fields[field_index]
-      cat("FACTOR /NAME=", toupper(field_name), "/LEVELS=",
-          meta.data$factors[field_index]$levels, "/LABELS=", 
-          meta.data$factors[field_index]$labels, file=command.file.name, 
-          "\n", append=TRUE)
-    }
-  }
+  # !deal with factors
   
   cat("INFILE=", data.file.name, "/NOECHO;", file=command.file.name, 
       "\n", append=TRUE)
   cat("END;", file=command.file.name, "\n", append=TRUE)
   
-  cat("ESTIMATE /KEY=", file=command.file.name, append=TRUE)
+  # onto the estimate section
+  cat("ESTIMATE;", file=command.file.name, "\n", append=TRUE)
+  
+  # we are only interested in the estimates for detection probability
+  cat("DETECTION ALL;", file=command.file.name, "\n", append=TRUE)
+  
+  cat("ESTIMATOR /KEY=", file=command.file.name, append=TRUE)
   if(dsmodel$key == "hn"){
     cat("HNORMAL", file=command.file.name, append=TRUE)
   }else if(dsmodel$key == "hr"){
@@ -124,6 +120,12 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     cat("UNIFORM", file=command.file.name, append=TRUE)
   }
   # !not sure about gamma vs negative exponential
+  
+  # specify adjustment parameters
+  cat(" /NAP=", length(control.initial), file=command.file.name, 
+      append=TRUE)
+  cat(" /NAP=", paste(), file=command.file.name, 
+      append=TRUE)
   
   # add adjustment terms
   if(dsmodel$adj.series == "cos"){
@@ -152,4 +154,31 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     cat(" /UPPER=", paste(control$upperbounds,collapse=","), 
         file=command.file.name, append=TRUE)
   }
+  
+  # specifying covariates in the model
+  covars <- all.vars(dsmodel)
+  covar_fields <- fields[grep(covars,colnames(data))]
+  cat(" /COVARIATES=", paste(toupper(covar_fields),collapse=","), 
+      file=command.file.name, append=TRUE)
+  
+  # ending the ESTIMATOR line
+  cat(";", file=command.file.name, "\n", append=TRUE)
+  
+  # specifying monotonicity constraint
+  if(meta.data$mono.strict == TRUE) {
+    cat("MONOTONE=STRICT;", file=command.file.name, "\n", append=TRUE)
+  } else if(meta.data$mono == TRUE) {
+    cat("MONOTONE=WEAK;", file=command.file.name, "\n", append=TRUE)
+  } else {
+    cat("MONOTONE=NONE;", file=command.file.name, "\n", append=TRUE)
+  }
+  
+  # dealing with grouped data
+  if(meta.data$binned == TRUE){
+    cat("DISTANCE /INTERVALS=", paste(meta.data$breaks, collapse=","), 
+       file=command.file.name, append=TRUE)
+  }
+  cat(" /LEFT=", meta.data$left, ";", file=command.file.name, "\n", 
+      append=TRUE)
+  cat("END;", file=command.file.name, "\n", append=TRUE)
 }
