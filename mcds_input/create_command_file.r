@@ -7,13 +7,16 @@
 
 create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
                                 method,meta.data,control) {
+  # create a temporary directory
+  directory <- tempdir()
   # create data file to pass to mcds
-  data.file.name <- tempfile(pattern="data", tmpdir="tmp_files",
+  data.file.name <- tempfile(pattern="data", tmpdir=directory,
                              fileext=".csv")
-  write.csv(data,"tmp_file\\data.csv",row.names=FALSE)
+  file.create(data.file.name)
+  write.csv(data, data.file.name, row.names=FALSE)
   
   # create command file
-  command.file.name <- tempfile(pattern="cmdtmp", tmpdir="tmp_files",
+  command.file.name <- tempfile(pattern="cmdtmp", tmpdir=directory,
                                 fileext=".txt")
   file.create(command.file.name)
   # output commands to it
@@ -29,11 +32,13 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   
   # !consider the case where TYPE="LINE" but DISTANCE="RADIAL"?
   if(meta.data$point == TRUE){
-    cat("DISTANCE=RADIAL /UNITS='Meters' /WIDTH=", meta.data$width,
-        ";", file=command.file.name, "\n", append=TRUE)
+    cat("DISTANCE=RADIAL /UNITS='Meters' /WIDTH=", 
+        meta.data$width, ";", file=command.file.name, "\n", 
+        append=TRUE)
   }else{
-    cat("DISTANCE=PERP /UNITS='Meters' /WIDTH=", meta.data$width,
-        ";", file=command.file.name, "\n", append=TRUE)
+    cat("DISTANCE=PERP /UNITS='Meters' /WIDTH=", 
+        meta.data$width, ";", file=command.file.name, "\n", 
+        append=TRUE)
   }
   
   # define whether there are clusters
@@ -59,12 +64,12 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   cat("SELECTION=SPECIFY;", file=command.file.name, "\n", 
       append=TRUE)
   
-  # moving onto the data section
+  # DATA section
   
   cat("END;", file=command.file.name, "\n", append=TRUE)
-  cat("DATA /STRUCTURE=FLAT;", file=command.file.name, "\n", append=TRUE)
+  cat("DATA /STRUCTURE=FLAT;", file=command.file.name, "\n", 
+      append=TRUE)
   
-  # !this is only necessary if fields appear as they do in example data
   # create a vector of fields, renamed to match mcds
   fields <- colnames(data)
   # find which field will be used for the effort and change the name 
@@ -72,6 +77,7 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   if(TRUE %in% grepl("^Effort$",colnames(data))){
     fields[colnames(data)=="Effort"] <- "SMP_EFFORT"
   }else if(TRUE %in% grepl("^Search.time$",colnames(data))){
+    # !this may be a bit too specific to the example data in Distance
     fields[colnames(data)=="Search.time"] <- "SMP_EFFORT"
   }else{
     data$EFFORT <- rep(1,nrow(data))
@@ -105,7 +111,8 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
       "\n", append=TRUE)
   cat("END;", file=command.file.name, "\n", append=TRUE)
   
-  # onto the estimate section
+  # ESTIMATE section
+  
   cat("ESTIMATE;", file=command.file.name, "\n", append=TRUE)
   
   # we are only interested in the estimates for detection probability
@@ -122,10 +129,10 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   # !not sure about gamma vs negative exponential
   
   # specify adjustment parameters
-  cat(" /NAP=", length(control.initial), file=command.file.name, 
-      append=TRUE)
-  cat(" /NAP=", paste(), file=command.file.name, 
-      append=TRUE)
+  #cat(" /NAP=", length(control$initial), file=command.file.name, 
+      #append=TRUE)
+  #cat(" /NAP=", paste(), file=command.file.name, 
+      #append=TRUE)
   
   # add adjustment terms
   if(dsmodel$adj.series == "cos"){
@@ -165,11 +172,11 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   cat(";", file=command.file.name, "\n", append=TRUE)
   
   # specifying monotonicity constraint
-  if(meta.data$mono.strict == TRUE) {
+  if(meta.data$mono.strict == TRUE){
     cat("MONOTONE=STRICT;", file=command.file.name, "\n", append=TRUE)
-  } else if(meta.data$mono == TRUE) {
+  }else if(meta.data$mono == TRUE){
     cat("MONOTONE=WEAK;", file=command.file.name, "\n", append=TRUE)
-  } else {
+  }else{
     cat("MONOTONE=NONE;", file=command.file.name, "\n", append=TRUE)
   }
   
@@ -178,7 +185,9 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     cat("DISTANCE /INTERVALS=", paste(meta.data$breaks, collapse=","), 
        file=command.file.name, append=TRUE)
   }
-  cat(" /LEFT=", meta.data$left, ";", file=command.file.name, "\n", 
-      append=TRUE)
+  cat(" /LEFT=", meta.data$left, ";", file=command.file.name, 
+      "\n", append=TRUE)
   cat("END;", file=command.file.name, "\n", append=TRUE)
+  
+  return(command.file.name)
 }
