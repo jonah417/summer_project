@@ -11,7 +11,7 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   directory <- tempdir()
   # create data file to pass to mcds
   data.file.name <- tempfile(pattern="data", tmpdir=directory,
-                             fileext=".csv")
+                             fileext=".txt")
   file.create(data.file.name)
   write.csv(data, data.file.name, row.names=FALSE)
   
@@ -56,9 +56,9 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   
   # !not sure if the output levels match completely
   output_info_levels <- c("SUMMARY","RESULTS","SELECTION","ALL")
-  specified_output_level <- output_info_levels[data$showit-1]
-  cat("PRINT=", specified_output_level, file=command.file.name, "\n", 
-      append=TRUE)
+  specified_output_level <- output_info_levels[control$showit+1]
+  cat("PRINT=", specified_output_level, ";", file=command.file.name, 
+      "\n", append=TRUE)
   
   # the user will specify the adjustment term selection
   cat("SELECTION=SPECIFY;", file=command.file.name, "\n", 
@@ -119,11 +119,11 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   cat("DETECTION ALL;", file=command.file.name, "\n", append=TRUE)
   
   cat("ESTIMATOR /KEY=", file=command.file.name, append=TRUE)
-  if(dsmodel$key == "hn"){
+  if(TRUE %in% grepl("hn", paste(dsmodel))){
     cat("HNORMAL", file=command.file.name, append=TRUE)
-  }else if(dsmodel$key == "hr"){
+  }else if(TRUE %in% grepl("hr", paste(dsmodel))){
     cat("HAZARD", file=command.file.name, append=TRUE)
-  }else if(dsmodel$key == "unif"){
+  }else if(TRUE %in% grepl("unif", paste(dsmodel))){
     cat("UNIFORM", file=command.file.name, append=TRUE)
   }
   # !not sure about gamma vs negative exponential
@@ -135,36 +135,41 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
       #append=TRUE)
   
   # add adjustment terms
-  if(dsmodel$adj.series == "cos"){
+  if(TRUE %in% grepl("cos", paste(dsmodel))){
     cat(" /ADJUST=COSINE", file=command.file.name, append=TRUE)
-  }else if(dsmodel$adj.series == "herm"){
+  }else if(TRUE %in% grepl("herm", paste(dsmodel))){
     cat(" /ADJUST=HERMITE", file=command.file.name, append=TRUE)
-  }else if(dsmodel$adj.series == "poly"){
+  }else if(TRUE %in% grepl("poly", paste(dsmodel))){
     cat(" /ADJUST=POLY", file=command.file.name, append=TRUE)
   }
   
   cat(" /ORDER=", paste(dsmodel$adj.order,collapse=","), 
       file=command.file.name, append=TRUE)
   
-  if(dsmodel$adj.scale == "width"){
+  if(TRUE %in% grepl("width", paste(dsmodel))){
     cat(" /ADJSTD=W", file=command.file.name, append=TRUE)
   }else{
     cat(" /ADJSTD=SIGMA", file=command.file.name, append=TRUE)
   }
   
   # defining upper and lower bounds for parameters
-  if(control$lowerbounds != ""){
+  if(is.null(control$lowerbounds) == FALSE){
     cat(" /LOWER=", paste(control$lowerbounds,collapse=","), 
         file=command.file.name, append=TRUE)
   }
-  if(control$upperbounds != ""){
+  if(is.null(control$upperbounds) == FALSE){
     cat(" /UPPER=", paste(control$upperbounds,collapse=","), 
         file=command.file.name, append=TRUE)
   }
   
   # specifying covariates in the model
   covars <- all.vars(dsmodel)
-  covar_fields <- fields[grep(covars,colnames(data))]
+  covar_fields <- vector()
+  for(i in 1:length(covars)){
+    covar_fields <- append(covar_fields,
+                           fields[grep(covars[i],colnames(data))])
+  }
+  #covar_fields <- fields[grep(covars,colnames(data))]
   cat(" /COVARIATES=", paste(toupper(covar_fields),collapse=","), 
       file=command.file.name, append=TRUE)
   
