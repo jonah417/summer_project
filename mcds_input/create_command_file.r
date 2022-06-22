@@ -28,7 +28,7 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   cat("None", file=command.file.name, "\n", append=TRUE)
   cat("OPTIONS;", file=command.file.name, "\n", append=TRUE)
   
-  # fill in option section
+  # OPTION section
   
   # !consider the case where TYPE="LINE" but DISTANCE="RADIAL"?
   if(meta.data$point == TRUE){
@@ -50,23 +50,27 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   }
   
   # managing the output options
-  if(control$debug == TRUE){
-    cat("DEBUG=TRUE;", file=command.file.name, "\n", append=TRUE)
+  if(is.null(control$debug) == FALSE){
+    if(control$debug == TRUE){
+      cat("DEBUG=TRUE;", file=command.file.name, "\n", append=TRUE)
+    }
   }
   
   # !not sure if the output levels match completely
-  output_info_levels <- c("SUMMARY","RESULTS","SELECTION","ALL")
-  specified_output_level <- output_info_levels[control$showit+1]
-  cat("PRINT=", specified_output_level, ";", file=command.file.name, 
+  if(is.null(control$showit) == FALSE){
+    output_info_levels <- c("SUMMARY","RESULTS","SELECTION","ALL")
+    specified_output_level <- output_info_levels[control$showit+1]
+    cat("PRINT=", specified_output_level, ";", file=command.file.name, 
       "\n", append=TRUE)
+  }
   
   # the user will specify the adjustment term selection
   cat("SELECTION=SPECIFY;", file=command.file.name, "\n", 
       append=TRUE)
+  cat("END;", file=command.file.name, "\n", append=TRUE)
   
   # DATA section
   
-  cat("END;", file=command.file.name, "\n", append=TRUE)
   cat("DATA /STRUCTURE=FLAT;", file=command.file.name, "\n", 
       append=TRUE)
   
@@ -83,6 +87,7 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     data$EFFORT <- rep(1,nrow(data))
     append(fields,"EFFORT")
   }
+  
   # find if Sample.Label is a field; if not, add it
   if(TRUE %in% grepl("^Sample.Label$",colnames(data))){
     fields[colnames(data)=="Sample.Label"] <- "SMP_LABEL"
@@ -118,6 +123,8 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   # we are only interested in the estimates for detection probability
   cat("DETECTION ALL;", file=command.file.name, "\n", append=TRUE)
   
+  # !this is pretty janky; there must be a way to access the values
+  # !of the parameters
   cat("ESTIMATOR /KEY=", file=command.file.name, append=TRUE)
   if(TRUE %in% grepl("hn", paste(dsmodel))){
     cat("HNORMAL", file=command.file.name, append=TRUE)
@@ -125,8 +132,9 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     cat("HAZARD", file=command.file.name, append=TRUE)
   }else if(TRUE %in% grepl("unif", paste(dsmodel))){
     cat("UNIFORM", file=command.file.name, append=TRUE)
+  }else{
+    cat("NEXPON", file=command.file.name, append=TRUE)
   }
-  # !not sure about gamma vs negative exponential
   
   # specify adjustment parameters
   #cat(" /NAP=", length(control$initial), file=command.file.name, 
@@ -134,22 +142,24 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   #cat(" /NAP=", paste(), file=command.file.name, 
       #append=TRUE)
   
-  # add adjustment terms
-  if(TRUE %in% grepl("cos", paste(dsmodel))){
-    cat(" /ADJUST=COSINE", file=command.file.name, append=TRUE)
-  }else if(TRUE %in% grepl("herm", paste(dsmodel))){
-    cat(" /ADJUST=HERMITE", file=command.file.name, append=TRUE)
-  }else if(TRUE %in% grepl("poly", paste(dsmodel))){
-    cat(" /ADJUST=POLY", file=command.file.name, append=TRUE)
-  }
+  #add info about adjustment terms, if used
+  if(grepl("adj.series") == TRUE){
+    if(TRUE %in% grepl("cos", paste(dsmodel))){
+      cat(" /ADJUST=COSINE", file=command.file.name, append=TRUE)
+    }else if(TRUE %in% grepl("herm", paste(dsmodel))){
+      cat(" /ADJUST=HERMITE", file=command.file.name, append=TRUE)
+    }else if(TRUE %in% grepl("poly", paste(dsmodel))){
+      cat(" /ADJUST=POLY", file=command.file.name, append=TRUE)
+    }
   
-  cat(" /ORDER=", paste(dsmodel$adj.order,collapse=","), 
-      file=command.file.name, append=TRUE)
+    cat(" /ORDER=", paste(dsmodel$adj.order,collapse=","), 
+        file=command.file.name, append=TRUE)
   
-  if(TRUE %in% grepl("width", paste(dsmodel))){
-    cat(" /ADJSTD=W", file=command.file.name, append=TRUE)
-  }else{
-    cat(" /ADJSTD=SIGMA", file=command.file.name, append=TRUE)
+    if(TRUE %in% grepl("width", paste(dsmodel))){
+      cat(" /ADJSTD=W", file=command.file.name, append=TRUE)
+    }else{
+      cat(" /ADJSTD=SIGMA", file=command.file.name, append=TRUE)
+    }
   }
   
   # defining upper and lower bounds for parameters
@@ -170,28 +180,47 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
                            fields[grep(covars[i],colnames(data))])
   }
   #covar_fields <- fields[grep(covars,colnames(data))]
-  cat(" /COVARIATES=", paste(toupper(covar_fields),collapse=","), 
-      file=command.file.name, append=TRUE)
+  #cat(" /COVARIATES=", paste(toupper(covar_fields),collapse=","), 
+      #file=command.file.name, append=TRUE)
   
   # ending the ESTIMATOR line
   cat(";", file=command.file.name, "\n", append=TRUE)
   
   # specifying monotonicity constraint
-  if(meta.data$mono.strict == TRUE){
-    cat("MONOTONE=STRICT;", file=command.file.name, "\n", append=TRUE)
-  }else if(meta.data$mono == TRUE){
-    cat("MONOTONE=WEAK;", file=command.file.name, "\n", append=TRUE)
+  # !this is truly horrifying; true to find a neater way
+  
+  if(is.null(meta.data$mono.strict) == FALSE){
+    if(meta.data$mono.strict == TRUE){
+      cat("MONOTONE=STRICT;", file=command.file.name, "\n", append=TRUE)
+    }else if(is.null(meta.data$mono) == FALSE){
+      if(meta.data$mono == TRUE){
+        cat("MONOTONE=WEAK;", file=command.file.name, "\n", append=TRUE)
+      }else{
+        cat("MONOTONE=NONE;", file=command.file.name, "\n", append=TRUE)
+      }
+    }
+  }else if(is.null(meta.data$mono) == FALSE){
+    if(meta.data$mono == TRUE){
+      cat("MONOTONE=WEAK;", file=command.file.name, "\n", append=TRUE)
+    }else{
+      cat("MONOTONE=NONE;", file=command.file.name, "\n", append=TRUE)
+    }
   }else{
     cat("MONOTONE=NONE;", file=command.file.name, "\n", append=TRUE)
   }
   
   # dealing with grouped data
-  if(meta.data$binned == TRUE){
-    cat("DISTANCE /INTERVALS=", paste(meta.data$breaks, collapse=","), 
-       file=command.file.name, append=TRUE)
+  if(is.null(meta.data$binned) == FALSE){
+    if(meta.data$binned == TRUE){
+      cat("DISTANCE /INTERVALS=", paste(meta.data$breaks, collapse=","), 
+         file=command.file.name, append=TRUE)
+    }
   }
-  cat(" /LEFT=", meta.data$left, ";", file=command.file.name, 
-      "\n", append=TRUE)
+  
+  if(is.null(meta.data$left) == FALSE){
+    cat(" /LEFT=", meta.data$left, ";", file=command.file.name, 
+       "\n", append=TRUE)
+  }
   cat("END;", file=command.file.name, "\n", append=TRUE)
   
   return(command.file.name)
