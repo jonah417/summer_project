@@ -11,7 +11,7 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   directory <- tempdir()
   # create data file to pass to mcds
   data.file.name <- tempfile(pattern="data", tmpdir=directory,
-                             fileext=".txt")
+                             fileext=".csv")
   file.create(data.file.name)
   write.csv(data, data.file.name, row.names=FALSE)
   
@@ -105,8 +105,8 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   }
   
   # change all fields to upper case and combine to one string
-  fields <- paste(toupper(fields), collapse=",")
-  cat("FIELDS=", fields, file=command.file.name, "\n", append=TRUE)
+  fields_comb <- paste(toupper(fields), collapse=",")
+  cat("FIELDS=", fields_comb, file=command.file.name, "\n", append=TRUE)
   
   # !how to define a cluster size covariate?
   
@@ -123,44 +123,40 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   # we are only interested in the estimates for detection probability
   cat("DETECTION ALL;", file=command.file.name, "\n", append=TRUE)
   
-  # !this is pretty janky; there must be a way to access the values
-  # !of the parameters
+  # a messy way of accessing the model parameters
+  mod_paste <- paste(dsmodel)
+  mod_vals <- try(eval(parse(text=mod_paste[2:length(modpaste)])))
+  
   cat("ESTIMATOR /KEY=", file=command.file.name, append=TRUE)
-  if(TRUE %in% grepl("hn", paste(dsmodel))){
+  if(mod_vals$key == "hn"){
     cat("HNORMAL", file=command.file.name, append=TRUE)
-  }else if(TRUE %in% grepl("hr", paste(dsmodel))){
+  }else if(mod_vals$key == "hr"){
     cat("HAZARD", file=command.file.name, append=TRUE)
-  }else if(TRUE %in% grepl("unif", paste(dsmodel))){
+  }else if(mod_vals$key == "unif"){
     cat("UNIFORM", file=command.file.name, append=TRUE)
   }else{
     cat("NEXPON", file=command.file.name, append=TRUE)
   }
   
-  # specify adjustment parameters
-  #cat(" /NAP=", length(control$initial), file=command.file.name, 
-      #append=TRUE)
-  #cat(" /NAP=", paste(), file=command.file.name, 
-      #append=TRUE)
-  
-  #add info about adjustment terms, if used
-  if(grepl("adj.series") == TRUE){
-    if(TRUE %in% grepl("cos", paste(dsmodel))){
-      cat(" /ADJUST=COSINE", file=command.file.name, append=TRUE)
-    }else if(TRUE %in% grepl("herm", paste(dsmodel))){
-      cat(" /ADJUST=HERMITE", file=command.file.name, append=TRUE)
-    }else if(TRUE %in% grepl("poly", paste(dsmodel))){
-      cat(" /ADJUST=POLY", file=command.file.name, append=TRUE)
-    }
-  
-    cat(" /ORDER=", paste(dsmodel$adj.order,collapse=","), 
-        file=command.file.name, append=TRUE)
-  
-    if(TRUE %in% grepl("width", paste(dsmodel))){
-      cat(" /ADJSTD=W", file=command.file.name, append=TRUE)
-    }else{
-      cat(" /ADJSTD=SIGMA", file=command.file.name, append=TRUE)
-    }
+  if(mod_vals$adj.series == "cos"){
+    cat(" /ADJUST=COSINE", file=command.file.name, append=TRUE)
+  }else if(mod_vals$adj.series == "herm"){
+    cat(" /ADJUST=HERMITE", file=command.file.name, append=TRUE)
+  }else if(mod_vals$adj.series == "poly"){
+    cat(" /ADJUST=POLY", file=command.file.name, append=TRUE)
   }
+  
+  cat(" /ORDER=", paste(dsmodel$adj.order,collapse=","), 
+      file=command.file.name, append=TRUE)
+  
+  if(mod_vals$adj.scale == "width"){
+    cat(" /ADJSTD=W", file=command.file.name, append=TRUE)
+  }else{
+    cat(" /ADJSTD=SIGMA", file=command.file.name, append=TRUE)
+  }
+  
+  cat(" /NAP=", length(dsmodel$adj.order), file=command.file.name, 
+      append=TRUE)
   
   # defining upper and lower bounds for parameters
   if(is.null(control$lowerbounds) == FALSE){
@@ -174,37 +170,29 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   
   # specifying covariates in the model
   covars <- all.vars(dsmodel)
-  covar_fields <- vector()
+  covar_fields <- rep("",length(covars))
   for(i in 1:length(covars)){
-    covar_fields <- append(covar_fields,
-                           fields[grep(covars[i],colnames(data))])
+    index <- grep(covars[i],colnames(data))
+    covar_fields[i] <- toupper(fields[index])
   }
-  #covar_fields <- fields[grep(covars,colnames(data))]
-  #cat(" /COVARIATES=", paste(toupper(covar_fields),collapse=","), 
-      #file=command.file.name, append=TRUE)
+  cat(" /COVARIATES=", paste(covar_fields,collapse=","), 
+      file=command.file.name, append=TRUE)
   
   # ending the ESTIMATOR line
   cat(";", file=command.file.name, "\n", append=TRUE)
   
   # specifying monotonicity constraint
-  # !this is truly horrifying; true to find a neater way
+  if(is.null(meta.data$mono.strict)){
+    meta.data$mono.strict <- FALSE
+  }
+  if(is.null(meta.data$mono)){
+    meta.data$mono <- FALSE
+  }
   
-  if(is.null(meta.data$mono.strict) == FALSE){
-    if(meta.data$mono.strict == TRUE){
-      cat("MONOTONE=STRICT;", file=command.file.name, "\n", append=TRUE)
-    }else if(is.null(meta.data$mono) == FALSE){
-      if(meta.data$mono == TRUE){
-        cat("MONOTONE=WEAK;", file=command.file.name, "\n", append=TRUE)
-      }else{
-        cat("MONOTONE=NONE;", file=command.file.name, "\n", append=TRUE)
-      }
-    }
-  }else if(is.null(meta.data$mono) == FALSE){
-    if(meta.data$mono == TRUE){
-      cat("MONOTONE=WEAK;", file=command.file.name, "\n", append=TRUE)
-    }else{
-      cat("MONOTONE=NONE;", file=command.file.name, "\n", append=TRUE)
-    }
+  if(meta.data$mono.strict == TRUE){
+    cat("MONOTONE=STRICT;", file=command.file.name, "\n", append=TRUE)
+  }else if(meta.data$mono == TRUE){
+    cat("MONOTONE=WEAK;", file=command.file.name, "\n", append=TRUE)
   }else{
     cat("MONOTONE=NONE;", file=command.file.name, "\n", append=TRUE)
   }
