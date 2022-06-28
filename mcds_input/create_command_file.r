@@ -28,6 +28,11 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   cat("None", file=command.file.name, "\n", append=TRUE)
   cat("OPTIONS;", file=command.file.name, "\n", append=TRUE)
   
+  # if analysis is restricted to just detected observations
+  if(control$limit){
+    data <- data[data$detected==1,]
+  }
+  
   # OPTION section
   
   # !consider the case where TYPE="LINE" but DISTANCE="RADIAL"?
@@ -111,6 +116,13 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   # !how to define a cluster size covariate?
   
   # !deal with factors
+  # !how do we deal with numeric factors accurately?
+  factor_fields <- c()
+  for(i in 1:length(colnames(data))){
+    if(is.factor(data[,i])){
+      append(factor_fields,fields[i])
+    }
+  }
   
   cat("INFILE=", data.file.name, "/NOECHO;", file=command.file.name, 
       "\n", append=TRUE)
@@ -155,8 +167,26 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     cat(" /ADJSTD=SIGMA", file=command.file.name, append=TRUE)
   }
   
-  cat(" /NAP=", length(dsmodel$adj.order), file=command.file.name, 
+  cat(" /NAP=", length(mod_vals$adj.order), file=command.file.name, 
       append=TRUE)
+  
+  # allowing for initial values for the parameters
+  if(is.null(control$initial) == FALSE){
+    cat(" /START=", file=command.file.name, append=TRUE)
+    if(mod_vals$key == "hr"){
+      cat(control$initial$scale, ",", control$initial$shape, 
+          file=command.file.name, append=TRUE)
+    }else if(mod_vals$key == "hn"){
+      cat(control$initial$scale, file=command.file.name, append=TRUE)
+    }
+    # !find out how initial values for adjustment parameters are given
+    if(mod_vals$adj.order > 0){
+      for(i in 1:length(mod_vals$adj.order)){
+        cat(",", control$initial$adjustment[i], file=command.file.name, 
+            append=TRUE)
+      }
+    }
+  }
   
   # defining upper and lower bounds for parameters
   if(is.null(control$lowerbounds) == FALSE){
