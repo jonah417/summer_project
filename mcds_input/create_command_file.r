@@ -170,6 +170,16 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   cat(" /NAP=", length(mod_vals$adj.order), file=command.file.name, 
       append=TRUE)
   
+  # specifying covariates in the model
+  covars <- all.vars(dsmodel)
+  covar_fields <- rep("",length(covars))
+  for(i in 1:length(covars)){
+    index <- grep(covars[i],colnames(data))
+    covar_fields[i] <- toupper(fields[index])
+  }
+  cat(" /COVARIATES=", paste(covar_fields,collapse=","), 
+      file=command.file.name, append=TRUE)
+  
   # allowing for initial values for the parameters
   if(is.null(control$initial) == FALSE){
     cat(" /START=", file=command.file.name, append=TRUE)
@@ -178,6 +188,23 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
           file=command.file.name, append=TRUE)
     }else if(mod_vals$key == "hn"){
       cat(control$initial$scale, file=command.file.name, append=TRUE)
+    }
+    # in the case of covariates, where factors are absorbed
+    # find non-factor covariates
+    covar_non_fac <- c()
+    for(i in 1:length(covar_fields)){
+      if(grepl(covar_fields[i],factor_fields) == FALSE){
+        index <- grep(covar_fields[i],fields)
+        new_field <- paste("$",colnames(data)[index],sep="")
+        append(covar_non_fac,new_field)
+      }
+    }
+    if(length(covar_non_fac) > 0){
+      for(i in 1:length(covar_non_fac)){
+        new_covar <- paste("control$initial",covar_non_fac[i],sep="")
+        cat(",", eval(new_covar), file=command.file.name, 
+            append=TRUE)
+      }
     }
     # !find out how initial values for adjustment parameters are given
     if(mod_vals$adj.order > 0){
@@ -197,16 +224,6 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     cat(" /UPPER=", paste(control$upperbounds,collapse=","), 
         file=command.file.name, append=TRUE)
   }
-  
-  # specifying covariates in the model
-  covars <- all.vars(dsmodel)
-  covar_fields <- rep("",length(covars))
-  for(i in 1:length(covars)){
-    index <- grep(covars[i],colnames(data))
-    covar_fields[i] <- toupper(fields[index])
-  }
-  cat(" /COVARIATES=", paste(covar_fields,collapse=","), 
-      file=command.file.name, append=TRUE)
   
   # ending the ESTIMATOR line
   cat(";", file=command.file.name, "\n", append=TRUE)
