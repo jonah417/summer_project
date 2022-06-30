@@ -1,10 +1,5 @@
 # assuming the inputs are in the same form as those used in ddf.R
 
-# data must have the following fields:
-# object, observer, detected, distance (matches mrds input)
-# SMP_LABEL, SMP_EFFORT (required for mcds)
-# optionally
-
 create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
                                 method,meta.data,control) {
   # create a temporary directory
@@ -113,14 +108,15 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   fields_comb <- paste(toupper(fields), collapse=",")
   cat("FIELDS=", fields_comb, file=command.file.name, "\n", append=TRUE)
   
-  # !how to define a cluster size covariate?
-  
-  # !deal with factors
-  # !how do we deal with numeric factors accurately?
+  # specifying which fields are factors
   factor_fields <- c()
   for(i in 1:length(colnames(data))){
-    if(is.factor(data[,i])){
+    if(is.factor(paste(data[,i]))){
       append(factor_fields,fields[i])
+      labels <- paste(levels(data[,i]), collapse=",")
+      cat("FACTOR /NAME=", toupper(fields[i]), "/LEVELS=", 
+          length(levels(data[,i])), "/LABELS=", labels, 
+          file=command.file.name, "\n", append=TRUE)
     }
   }
   
@@ -183,29 +179,25 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   # allowing for initial values for the parameters
   if(is.null(control$initial) == FALSE){
     cat(" /START=", file=command.file.name, append=TRUE)
+    # go through covariates in order
+    for(i in 1:length(covars)){
+      index <- grep(covar_fields[i],fields)
+      access_covar <- paste("control$initial$scale$",
+                            colnames(data)[index],sep="")
+      if(grepl(covar_fields[i],factor_fields)){
+        #cat(eval(access_covar), ",", file=command.file.name, append=TRUE)
+      }else{
+        cat(eval(access_covar), ",", file=command.file.name, 
+            append=TRUE)
+      }
+    }
     if(mod_vals$key == "hr"){
       cat(control$initial$scale, ",", control$initial$shape, 
           file=command.file.name, append=TRUE)
     }else if(mod_vals$key == "hn"){
       cat(control$initial$scale, file=command.file.name, append=TRUE)
     }
-    # in the case of covariates, where factors are absorbed
-    # find non-factor covariates
-    covar_non_fac <- c()
-    for(i in 1:length(covar_fields)){
-      if(grepl(covar_fields[i],factor_fields) == FALSE){
-        index <- grep(covar_fields[i],fields)
-        new_field <- paste("$",colnames(data)[index],sep="")
-        append(covar_non_fac,new_field)
-      }
-    }
-    if(length(covar_non_fac) > 0){
-      for(i in 1:length(covar_non_fac)){
-        new_covar <- paste("control$initial",covar_non_fac[i],sep="")
-        cat(",", eval(new_covar), file=command.file.name, 
-            append=TRUE)
-      }
-    }
+    
     # !find out how initial values for adjustment parameters are given
     if(mod_vals$adj.order > 0){
       for(i in 1:length(mod_vals$adj.order)){
