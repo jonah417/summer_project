@@ -32,12 +32,12 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   
   # !consider the case where TYPE="LINE" but DISTANCE="RADIAL"?
   if(meta.data$point == TRUE){
-    cat("DISTANCE=RADIAL /UNITS='Meters' /WIDTH=", 
-        meta.data$width, ";", file=command.file.name, "\n", 
+    cat(paste("DISTANCE=RADIAL /UNITS='Meters' /WIDTH=", 
+        meta.data$width, sep=""), ";", file=command.file.name, "\n", 
         append=TRUE)
   }else{
-    cat("DISTANCE=PERP /UNITS='Meters' /WIDTH=", 
-        meta.data$width, ";", file=command.file.name, "\n", 
+    cat(paste("DISTANCE=PERP /UNITS='Meters' /WIDTH=", 
+        meta.data$width, sep=""), ";", file=command.file.name, "\n", 
         append=TRUE)
   }
   
@@ -60,8 +60,8 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   if(is.null(control$showit) == FALSE){
     output_info_levels <- c("SUMMARY","RESULTS","SELECTION","ALL")
     specified_output_level <- output_info_levels[control$showit+1]
-    cat("PRINT=", specified_output_level, ";", file=command.file.name, 
-      "\n", append=TRUE)
+    cat(paste("PRINT=", specified_output_level, sep=""), ";", 
+        file=command.file.name, "\n", append=TRUE)
   }
   
   # the user will specify the adjustment term selection
@@ -85,7 +85,7 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     fields[colnames(data)=="Search.time"] <- "SMP_EFFORT"
   }else{
     data$EFFORT <- rep(1,nrow(data))
-    append(fields,"EFFORT")
+    fields <- append(fields,"EFFORT")
   }
   
   # find if Sample.Label is a field; if not, add it
@@ -93,7 +93,7 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     fields[colnames(data)=="Sample.Label"] <- "SMP_LABEL"
   }else{
     data$SMP_LABEL <- rep(1,nrow(data))
-    append(fields,"SMP_LABEL")
+    fields <- append(fields,"SMP_LABEL")
   }
   
   # check if other defined fields are columns in the dataset
@@ -106,22 +106,23 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   
   # change all fields to upper case and combine to one string
   fields_comb <- paste(toupper(fields), collapse=",")
-  cat("FIELDS=", fields_comb, file=command.file.name, "\n", append=TRUE)
+  cat(paste("FIELDS=", fields_comb, sep=""), file=command.file.name, 
+      "\n", append=TRUE)
   
   # specifying which fields are factors
   factor_fields <- c()
   for(i in 1:length(colnames(data))){
-    if(is.factor(paste(data[,i]))){
-      append(factor_fields,fields[i])
+    if(is.factor(data[,i])){
+      factor_fields <- append(factor_fields,fields[i])
       labels <- paste(levels(data[,i]), collapse=",")
-      cat("FACTOR /NAME=", toupper(fields[i]), "/LEVELS=", 
-          length(levels(data[,i])), "/LABELS=", labels, 
+      cat(paste("FACTOR /NAME=", toupper(fields[i]), " /LEVELS=", 
+          length(levels(data[,i])), " /LABELS=", labels, sep=""), 
           file=command.file.name, "\n", append=TRUE)
     }
   }
   
-  cat("INFILE=", data.file.name, "/NOECHO;", file=command.file.name, 
-      "\n", append=TRUE)
+  cat(paste("INFILE=", data.file.name, "/NOECHO;", sep=""), 
+      file=command.file.name, "\n", append=TRUE)
   cat("END;", file=command.file.name, "\n", append=TRUE)
   
   # ESTIMATE section
@@ -154,7 +155,7 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     cat(" /ADJUST=POLY", file=command.file.name, append=TRUE)
   }
   
-  cat(" /ORDER=", paste(dsmodel$adj.order,collapse=","), 
+  cat(" /ORDER=", mod_vals$adj.order, 
       file=command.file.name, append=TRUE)
   
   if(mod_vals$adj.scale == "width"){
@@ -163,8 +164,8 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     cat(" /ADJSTD=SIGMA", file=command.file.name, append=TRUE)
   }
   
-  cat(" /NAP=", length(mod_vals$adj.order), file=command.file.name, 
-      append=TRUE)
+  cat(paste(" /NAP=", length(mod_vals$adj.order), sep=""), 
+      file=command.file.name, append=TRUE)
   
   # specifying covariates in the model
   covars <- all.vars(dsmodel)
@@ -173,47 +174,50 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     index <- grep(covars[i],colnames(data))
     covar_fields[i] <- toupper(fields[index])
   }
-  cat(" /COVARIATES=", paste(covar_fields,collapse=","), 
+  cat(paste(" /COVARIATES=", paste(covar_fields,collapse=","), sep=""), 
       file=command.file.name, append=TRUE)
   
   # allowing for initial values for the parameters
+  inits <- c()
   if(is.null(control$initial) == FALSE){
-    cat(" /START=", file=command.file.name, append=TRUE)
     # go through covariates in order
     for(i in 1:length(covars)){
-      index <- grep(covar_fields[i],fields)
-      access_covar <- paste("control$initial$scale$",
-                            colnames(data)[index],sep="")
-      if(grepl(covar_fields[i],factor_fields)){
-        #cat(eval(access_covar), ",", file=command.file.name, append=TRUE)
+      index <- grep(covar_fields[i],toupper(fields))
+      if(TRUE %in% grepl(covar_fields[i],factor_fields)){
+        for(j in 2:length(levels(data[,index]))){
+          access_covar <- paste("control$initial$scale$",
+                                colnames(data)[index],"[",j,"]",sep="")
+          inits <- append(inits,eval(parse(text=access_covar)))
+        }
+        access_covar <- paste("control$initial$scale$",
+                              colnames(data)[index],"[1]",sep="")
+        inits <- append(inits,eval(parse(text=access_covar)))
       }else{
-        cat(eval(access_covar), ",", file=command.file.name, 
-            append=TRUE)
+        access_covar <- paste("control$initial$scale$",
+                              colnames(data)[index],sep="")
+        inits <- append(inits,eval(parse(text=access_covar)))
       }
     }
+    # add in shape parameter if hazard-rate used
     if(mod_vals$key == "hr"){
-      cat(control$initial$scale, ",", control$initial$shape, 
-          file=command.file.name, append=TRUE)
-    }else if(mod_vals$key == "hn"){
-      cat(control$initial$scale, file=command.file.name, append=TRUE)
+      inits <- append(inits,control$initial$shape)
     }
-    
-    # !find out how initial values for adjustment parameters are given
-    if(mod_vals$adj.order > 0){
-      for(i in 1:length(mod_vals$adj.order)){
-        cat(",", control$initial$adjustment[i], file=command.file.name, 
-            append=TRUE)
-      }
+    # add in adjustment initial values
+    for(i in 1:length(mod_vals$adj.order)){
+      inits <- append(inits,control$initial$adjustment[i])
     }
+    print(inits)
+    cat(paste(" /START=", paste(inits,collapse=","), sep=""), 
+        file=command.file.name, append=TRUE)
   }
   
   # defining upper and lower bounds for parameters
   if(is.null(control$lowerbounds) == FALSE){
-    cat(" /LOWER=", paste(control$lowerbounds,collapse=","), 
+    cat(paste(" /LOWER=", paste(control$lowerbounds,collapse=","), sep=""), 
         file=command.file.name, append=TRUE)
   }
   if(is.null(control$upperbounds) == FALSE){
-    cat(" /UPPER=", paste(control$upperbounds,collapse=","), 
+    cat(paste(" /UPPER=", paste(control$upperbounds,collapse=","), sep=""), 
         file=command.file.name, append=TRUE)
   }
   
@@ -245,8 +249,8 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   }
   
   if(is.null(meta.data$left) == FALSE){
-    cat(" /LEFT=", meta.data$left, ";", file=command.file.name, 
-       "\n", append=TRUE)
+    cat(paste(" /LEFT=", meta.data$left, sep=""), ";", 
+        file=command.file.name, "\n", append=TRUE)
   }
   cat("END;", file=command.file.name, "\n", append=TRUE)
   
