@@ -24,8 +24,10 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   cat("OPTIONS;", file=command.file.name, "\n", append=TRUE)
   
   # if analysis is restricted to just detected observations
-  if(control$limit){
-    data <- data[data$detected==1,]
+  if(is.null(control$limit) == FALSE){
+    if(control$limit){
+      data <- data[data$detected==1,]
+    }
   }
   
   # OPTION section
