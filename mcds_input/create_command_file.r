@@ -3,16 +3,19 @@
 create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
                                 method,meta.data,control) {
   # create a temporary directory
-  directory <- tempdir()
+  directory <- "C:\\Users\\jrm36\\AppData\\Local\\Temp"
   # create data file to pass to mcds
   data.file.name <- tempfile(pattern="data", tmpdir=directory,
                              fileext=".csv")
+  data.file.name <- gsub("/","\\\\",data.file.name)
   file.create(data.file.name)
+  print(data.file.name)
   write.csv(data, data.file.name, row.names=FALSE)
   
   # create command file
   command.file.name <- tempfile(pattern="cmdtmp", tmpdir=directory,
                                 fileext=".txt")
+  command.file.name <- gsub("/","\\\\",command.file.name)
   file.create(command.file.name)
   # output commands to it
   cat("out.txt", file=command.file.name, "\n", append=TRUE)
@@ -123,6 +126,9 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     }
   }
   
+  # input the absolute path to the data file
+  data.file.name <- paste("C:",data.file.name,sep="")
+  gsub("/","\\\\",data.file.name)
   cat(paste("INFILE=", data.file.name, "/NOECHO;", sep=""), 
       file=command.file.name, "\n", append=TRUE)
   cat("END;", file=command.file.name, "\n", append=TRUE)
@@ -242,18 +248,21 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     cat("MONOTONE=NONE;", file=command.file.name, "\n", append=TRUE)
   }
   
+  cat(paste("DISTANCE /WIDTH=",meta.data$width,sep=""), 
+      file=command.file.name, append=TRUE)
   # dealing with grouped data
   if(is.null(meta.data$binned) == FALSE){
     if(meta.data$binned == TRUE){
-      cat("DISTANCE /INTERVALS=", paste(meta.data$breaks, collapse=","), 
+      cat(" /INTERVALS=", paste(meta.data$breaks, collapse=","), 
          file=command.file.name, append=TRUE)
     }
   }
   
   if(is.null(meta.data$left) == FALSE){
-    cat(paste(" /LEFT=", meta.data$left, sep=""), ";", 
+    cat(paste(" /LEFT=", meta.data$left, sep=""), 
         file=command.file.name, "\n", append=TRUE)
   }
+  cat(";", file=command.file.name, "\n", append=TRUE)
   cat("END;", file=command.file.name, "\n", append=TRUE)
   
   return(command.file.name)
