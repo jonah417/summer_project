@@ -38,11 +38,11 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   # !consider the case where TYPE="LINE" but DISTANCE="RADIAL"?
   if(meta.data$point == TRUE){
     cat(paste("DISTANCE=RADIAL /UNITS='Meters' /WIDTH=", 
-        meta.data$width, sep=""), ";", file=command.file.name, "\n", 
+        meta.data$width, ";", sep=""), file=command.file.name, "\n", 
         append=TRUE)
   }else{
     cat(paste("DISTANCE=PERP /UNITS='Meters' /WIDTH=", 
-        meta.data$width, sep=""), ";", file=command.file.name, "\n", 
+        meta.data$width, ";", sep=""), file=command.file.name, "\n", 
         append=TRUE)
   }
   
@@ -65,7 +65,7 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   if(is.null(control$showit) == FALSE){
     output_info_levels <- c("SUMMARY","RESULTS","SELECTION","ALL")
     specified_output_level <- output_info_levels[control$showit+1]
-    cat(paste("PRINT=", specified_output_level, sep=""), ";", 
+    cat(paste("PRINT=", specified_output_level, ";", sep=""), 
         file=command.file.name, "\n", append=TRUE)
   }
   
@@ -111,8 +111,8 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   
   # change all fields to upper case and combine to one string
   fields_comb <- paste(toupper(fields), collapse=",")
-  cat(paste("FIELDS=", fields_comb, sep=""), file=command.file.name, 
-      "\n", append=TRUE)
+  cat(paste("FIELDS=", fields_comb, ";", sep=""), 
+      file=command.file.name, "\n", append=TRUE)
   
   # specifying covariates in the model
   covars <- all.vars(dsmodel)
@@ -135,9 +135,9 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   }
   
   # input the absolute path to the data file
-  data.file.name <- paste("C:",data.file.name,sep="")
+  #data.file.name <- paste("C:",data.file.name,sep="")
   gsub("/","\\\\",data.file.name)
-  cat(paste("INFILE=", data.file.name, "/NOECHO;", sep=""), 
+  cat(paste("INFILE=", data.file.name, " /NOECHO;", sep=""), 
       file=command.file.name, "\n", append=TRUE)
   cat("END;", file=command.file.name, "\n", append=TRUE)
   
@@ -261,7 +261,7 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   
   if(is.null(meta.data$left) == FALSE){
     cat(paste(" /LEFT=", meta.data$left, sep=""), 
-        file=command.file.name, "\n", append=TRUE)
+        file=command.file.name, append=TRUE)
   }
   cat(";", file=command.file.name, "\n", append=TRUE)
   cat("END;", file=command.file.name, "\n", append=TRUE)
