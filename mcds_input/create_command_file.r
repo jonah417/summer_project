@@ -3,7 +3,8 @@
 create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
                                 method,meta.data,control) {
   # create a temporary directory
-  directory <- "C:\\Users\\jrm36\\AppData\\Local\\Temp"
+  #directory <- "C:\\Users\\jrm36\\AppData\\Local\\Temp"
+  directory <- tempdir()
   
   # create command file
   command.file.name <- tempfile(pattern="cmdtmp", tmpdir=directory,
@@ -21,8 +22,14 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   
   # combine data from multiple observers
   data <- data[data$detected==1,]
-  if(grepl("^observer$")){
-    data <- data[!duplicated(data$observer),]
+  if(TRUE %in% grepl("^object$",colnames(data))){
+    obj_num <- unique(data$object)
+    for(i in 1:obj_num){
+      entries <- grep(TRUE,data$object==i)
+      if(length(entries)>1){
+        data <- data[-entries[2:length(entries)],]
+      }
+    }
   }
   
   # removing irrelevant data
@@ -31,7 +38,7 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   covar_fields <- rep("",length(covars))
   for(i in 1:length(covars)){
     index <- grep(covars[i],colnames(data))
-    covar_fields[i] <- toupper(fields[index])
+    covar_fields[i] <- toupper(colnames(data)[index])
   }
   
   # create a vector of required fields
@@ -66,8 +73,15 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   }
   req_fields <- c(req_fields,covar_fields)
   
+  print(colnames(data))
+  print(covar_fields)
+  print(req_fields)
   # remove all non-essential columns from the dataset
+  colnames(data) <- toupper(colnames(data))
   data <- data[req_fields]
+  
+  print("working")
+  head(data)
   
   # create data file to pass to mcds
   data.file.name <- tempfile(pattern="data", tmpdir=directory,
@@ -117,6 +131,8 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
       append=TRUE)
   cat("END;", file=command.file.name, "\n", append=TRUE)
   
+  print("options")
+  
   # DATA section
   
   cat("DATA /STRUCTURE=FLAT;", file=command.file.name, "\n", 
@@ -146,6 +162,8 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   cat(paste("INFILE=", data.file.name, " /NOECHO;", sep=""), 
       file=command.file.name, "\n", append=TRUE)
   cat("END;", file=command.file.name, "\n", append=TRUE)
+  
+  print("data")
   
   # ESTIMATE section
   
@@ -235,6 +253,8 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     cat(paste(" /UPPER=", paste(control$upperbounds,collapse=","), sep=""), 
         file=command.file.name, append=TRUE)
   }
+  
+  print("estimate")
   
   # ending the ESTIMATOR line
   cat(";", file=command.file.name, "\n", append=TRUE)
