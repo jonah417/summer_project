@@ -26,12 +26,55 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   cat("None", file=command.file.name, "\n", append=TRUE)
   cat("OPTIONS;", file=command.file.name, "\n", append=TRUE)
   
-  # if analysis is restricted to just detected observations
-  if(is.null(control$limit) == FALSE){
-    if(control$limit){
-      data <- data[data$detected==1,]
-    }
+  # combine data from multiple observers
+  data <- data[data$detected==1,]
+  if(grepl("^observer$")){
+    data <- data[!duplicated(data$observer),]
   }
+  
+  # removing irrelevant data
+  # specifying covariates in the model
+  covars <- all.vars(dsmodel)
+  covar_fields <- rep("",length(covars))
+  for(i in 1:length(covars)){
+    index <- grep(covars[i],colnames(data))
+    covar_fields[i] <- toupper(fields[index])
+  }
+  
+  # create a vector of required fields
+  req_fields <- c("SMP_LABEL","SMP_EFFORT","DISTANCE")
+  
+  # find which field will be used for the effort and change the name 
+  # to match field name in mcds
+  if(TRUE %in% grepl("^Effort$",colnames(data))){
+    colnames(data)[grep("^Effort$",colnames(data))] <- "SMP_EFFORT"
+  }else if(TRUE %in% grepl("^Search.time$",colnames(data))){
+    # !this may be a bit too specific to the example data in Distance
+    colnames(data)[grep("^Search.time$",colnames(data))] <- "SMP_EFFORT"
+  }else{
+    data$SMP_EFFORT <- rep(1,nrow(data))
+  }
+  
+  # find if Sample.Label is a field; if not, add it
+  if(TRUE %in% grepl("^Sample.Label$",colnames(data))){
+    colnames(data)[grep("^Sample.Label$",colnames(data))] <- "SMP_LABEL"
+  }else{
+    data$SMP_LABEL <- rep(1,nrow(data))
+  }
+  
+  # check if other defined fields are columns in the dataset
+  if(TRUE %in% grepl("^Region.Label$",colnames(data))){
+    colnames(data)[grep("^Region.Label$",colnames(data))] <- "STR_LABEL"
+    req_fields <- append(req_fields,"STR_LABEL")
+  }
+  if(TRUE %in% grepl("^Area$",colnames(data))){
+    colnames(data)[grep("^Area$",colnames(data))] <- "STR_AREA"
+    req_fields <- append(req_fields,"STR_AREA")
+  }
+  req_fields <- c(req_fields,covar_fields)
+  
+  # remove all non-essential columns from the dataset
+  data <- data[req_fields]
   
   # OPTION section
   
@@ -79,58 +122,21 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   cat("DATA /STRUCTURE=FLAT;", file=command.file.name, "\n", 
       append=TRUE)
   
-  # create a vector of fields, renamed to match mcds
-  fields <- colnames(data)
-  # find which field will be used for the effort and change the name 
-  # to match field name in mcds
-  if(TRUE %in% grepl("^Effort$",colnames(data))){
-    fields[colnames(data)=="Effort"] <- "SMP_EFFORT"
-  }else if(TRUE %in% grepl("^Search.time$",colnames(data))){
-    # !this may be a bit too specific to the example data in Distance
-    fields[colnames(data)=="Search.time"] <- "SMP_EFFORT"
-  }else{
-    data$EFFORT <- rep(1,nrow(data))
-    fields <- append(fields,"EFFORT")
-  }
-  
-  # find if Sample.Label is a field; if not, add it
-  if(TRUE %in% grepl("^Sample.Label$",colnames(data))){
-    fields[colnames(data)=="Sample.Label"] <- "SMP_LABEL"
-  }else{
-    data$SMP_LABEL <- rep(1,nrow(data))
-    fields <- append(fields,"SMP_LABEL")
-  }
-  
-  # check if other defined fields are columns in the dataset
-  if(TRUE %in% grepl("^Region.Label$",colnames(data))){
-    fields[colnames(data)=="Region.Label"] <- "STR_LABEL"
-  }
-  if(TRUE %in% grepl("^Area$",colnames(data))){
-    fields[colnames(data)=="Area"] <- "STR_AREA"
-  }
-  
   # change all fields to upper case and combine to one string
-  fields_comb <- paste(toupper(fields), collapse=",")
+  fields_comb <- paste(toupper(colnames(data)), collapse=",")
   cat(paste("FIELDS=", fields_comb, ";", sep=""), 
       file=command.file.name, "\n", append=TRUE)
-  
-  # specifying covariates in the model
-  covars <- all.vars(dsmodel)
-  covar_fields <- rep("",length(covars))
-  for(i in 1:length(covars)){
-    index <- grep(covars[i],colnames(data))
-    covar_fields[i] <- toupper(fields[index])
-  }
   
   # specifying which fields are factors
   factor_fields <- c()
   for(i in 1:length(colnames(data))){
-    if(is.factor(data[,i]) && (TRUE %in% grepl(fields[i],covar_fields))){
-      factor_fields <- append(factor_fields,fields[i])
+    if(is.factor(data[,i]) && (TRUE %in% grepl(colnames(data)[i],covar_fields))){
+      factor_fields <- append(factor_fields,colnames(data)[i])
       labels <- paste(levels(data[,i]), collapse=",")
-      cat(paste("FACTOR /NAME=", toupper(fields[i]), " /LEVELS=", 
-          length(levels(data[,i])), " /LABELS=", labels, sep=""), 
-          file=command.file.name, "\n", append=TRUE)
+      cat(paste("FACTOR /NAME=", toupper(colnames(data)[i]), 
+                " /LEVELS=", length(levels(data[,i])), " /LABELS=", 
+                labels, sep=""), file=command.file.name, "\n", 
+          append=TRUE)
     }
   }
   
