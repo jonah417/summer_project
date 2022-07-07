@@ -1,7 +1,0 @@
-out.txt 
-log.txt 
-stat.txt 
-plot.txt 
-None 
-None 
-OPTIONS; 
