@@ -88,7 +88,7 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
                              fileext=".txt")
   data.file.name <- gsub("/","\\\\",data.file.name)
   file.create(data.file.name)
-  write.table(data, file=data.file.name, row.names=FALSE, sep="\t")
+  write.table(data, file=data.file.name, col.names=FALSE, sep="\t")
   
   # OPTION section
   
