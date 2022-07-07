@@ -4,13 +4,6 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
                                 method,meta.data,control) {
   # create a temporary directory
   directory <- "C:\\Users\\jrm36\\AppData\\Local\\Temp"
-  # create data file to pass to mcds
-  data.file.name <- tempfile(pattern="data", tmpdir=directory,
-                             fileext=".csv")
-  data.file.name <- gsub("/","\\\\",data.file.name)
-  file.create(data.file.name)
-  print(data.file.name)
-  write.csv(data, data.file.name, row.names=FALSE)
   
   # create command file
   command.file.name <- tempfile(pattern="cmdtmp", tmpdir=directory,
@@ -75,6 +68,13 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   
   # remove all non-essential columns from the dataset
   data <- data[req_fields]
+  
+  # create data file to pass to mcds
+  data.file.name <- tempfile(pattern="data", tmpdir=directory,
+                             fileext=".txt")
+  data.file.name <- gsub("/","\\\\",data.file.name)
+  file.create(data.file.name)
+  write.table(data, file=data.file.name, row.names=FALSE, sep="\t")
   
   # OPTION section
   
