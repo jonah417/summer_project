@@ -114,10 +114,18 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   cat(paste("FIELDS=", fields_comb, sep=""), file=command.file.name, 
       "\n", append=TRUE)
   
+  # specifying covariates in the model
+  covars <- all.vars(dsmodel)
+  covar_fields <- rep("",length(covars))
+  for(i in 1:length(covars)){
+    index <- grep(covars[i],colnames(data))
+    covar_fields[i] <- toupper(fields[index])
+  }
+  
   # specifying which fields are factors
   factor_fields <- c()
   for(i in 1:length(colnames(data))){
-    if(is.factor(data[,i])){
+    if(is.factor(data[,i]) && (TRUE %in% grepl(fields[i],covar_fields))){
       factor_fields <- append(factor_fields,fields[i])
       labels <- paste(levels(data[,i]), collapse=",")
       cat(paste("FACTOR /NAME=", toupper(fields[i]), " /LEVELS=", 
@@ -175,13 +183,6 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   cat(paste(" /NAP=", length(mod_vals$adj.order), sep=""), 
       file=command.file.name, append=TRUE)
   
-  # specifying covariates in the model
-  covars <- all.vars(dsmodel)
-  covar_fields <- rep("",length(covars))
-  for(i in 1:length(covars)){
-    index <- grep(covars[i],colnames(data))
-    covar_fields[i] <- toupper(fields[index])
-  }
   cat(paste(" /COVARIATES=", paste(covar_fields,collapse=","), sep=""), 
       file=command.file.name, append=TRUE)
   

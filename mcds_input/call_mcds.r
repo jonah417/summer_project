@@ -7,6 +7,9 @@ meta.data <- list(point=FALSE, width=5.0, left=0.0, binned=FALSE,
                   mono.strict=FALSE)
 control <- list(showit=1)
 
+
+load("/cloud/project/mcds_input/akepa.RData")
+akepa <- read.csv("akepa.csv")
 test_file <- create_command_file(dsmodel,mrmodel,golftees,method,
                                  meta.data,control)
 
