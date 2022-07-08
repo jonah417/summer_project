@@ -5,7 +5,7 @@ mrmodel <- ~1
 method <- "ds"
 meta.data <- list(point=FALSE, width=5.0, left=0.0, binned=FALSE,
                   mono.strict=FALSE)
-control <- list(showit=1)
+control <- list(showit=3)
 
 test_file <- create_command_file(dsmodel,mrmodel,golftees,method,
                                  meta.data,control)

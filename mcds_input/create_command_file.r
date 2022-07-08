@@ -3,8 +3,8 @@
 create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
                                 method,meta.data,control) {
   # create a temporary directory
-  #directory <- "C:\\Users\\jrm36\\AppData\\Local\\Temp"
-  directory <- tempdir()
+  directory <- "C:\\Users\\jrm36\\AppData\\Local\\Temp\\"
+  #directory <- tempdir()
   
   # create command file
   command.file.name <- tempfile(pattern="cmdtmp", tmpdir=directory,
@@ -12,10 +12,14 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   command.file.name <- gsub("/","\\\\",command.file.name)
   file.create(command.file.name)
   # output commands to it
-  cat("out.txt", file=command.file.name, "\n", append=TRUE)
-  cat("log.txt", file=command.file.name, "\n", append=TRUE)
-  cat("stat.txt", file=command.file.name, "\n", append=TRUE)
-  cat("plot.txt", file=command.file.name, "\n", append=TRUE)
+  cat(paste(directory,"out.txt",sep=""), file=command.file.name, "\n", 
+      append=TRUE)
+  cat(paste(directory,"log.txt",sep=""), file=command.file.name, "\n", 
+      append=TRUE)
+  cat(paste(directory,"stat.txt",sep=""), file=command.file.name, 
+      "\n", append=TRUE)
+  cat(paste(directory,"plot.txt",sep=""), file=command.file.name, 
+      "\n", append=TRUE)
   cat("None", file=command.file.name, "\n", append=TRUE)
   cat("None", file=command.file.name, "\n", append=TRUE)
   cat("OPTIONS;", file=command.file.name, "\n", append=TRUE)
