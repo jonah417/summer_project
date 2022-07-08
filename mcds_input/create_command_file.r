@@ -37,14 +37,6 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   }
   
   # removing irrelevant data
-  # specifying covariates in the model
-  covars <- all.vars(dsmodel)
-  covar_fields <- rep("",length(covars))
-  for(i in 1:length(covars)){
-    index <- grep(covars[i],colnames(data))
-    covar_fields[i] <- toupper(colnames(data)[index])
-  }
-  
   # create a vector of required fields
   req_fields <- c("SMP_LABEL","SMP_EFFORT","DISTANCE")
   
@@ -75,6 +67,19 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     colnames(data)[grep("^Area$",colnames(data))] <- "STR_AREA"
     req_fields <- append(req_fields,"STR_AREA")
   }
+  
+  # specifying covariates in the model
+  covars <- all.vars(dsmodel)
+  covar_fields <- rep("",length(covars))
+  for(i in 1:length(covars)){
+    index <- grep(covars[i],colnames(data))
+    covar_fields[i] <- toupper(colnames(data)[index])
+  }
+  # the required fields cannot be covariates in the model
+  if(length(intersect(req_fields,covar_fields)) > 0){
+    covar_fields <- covar_fields[! covar_fields %in% intersect(req_fields,covar_fields)]
+  }
+  
   req_fields <- c(req_fields,covar_fields)
   
   # remove all non-essential columns from the dataset
