@@ -1,5 +1,5 @@
 
-dsmodel <- ~cds(key="hn",formula=~distance+sex, adj.series="cos",
+dsmodel <- ~cds(key="hr",formula=~exposure+sex, adj.series="cos",
                 adj.order=c(2,4))
 mrmodel <- ~1
 method <- "ds"
@@ -16,3 +16,5 @@ call_status <- system(wine_call, intern=TRUE,
 
 mod_paste <- paste(dsmodel)
 mod_vals <- try(eval(parse(text=mod_paste[2:length(modpaste)])))
+
+
