@@ -77,22 +77,17 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   }
   req_fields <- c(req_fields,covar_fields)
   
-  print(colnames(data))
-  print(covar_fields)
-  print(req_fields)
   # remove all non-essential columns from the dataset
   colnames(data) <- toupper(colnames(data))
   data <- data[req_fields]
-  
-  print("working")
-  head(data)
   
   # create data file to pass to mcds
   data.file.name <- tempfile(pattern="data", tmpdir=directory,
                              fileext=".txt")
   data.file.name <- gsub("/","\\\\",data.file.name)
   file.create(data.file.name)
-  write.table(data, file=data.file.name, col.names=FALSE, sep="\t")
+  write.table(data, file=data.file.name, col.names=FALSE, 
+              row.names=FALSE, sep="\t")
   
   # OPTION section
   
