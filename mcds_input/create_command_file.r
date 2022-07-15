@@ -26,9 +26,13 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   
   # combine data from multiple observers
   data <- data[data$detected==1,]
-  if(TRUE %in% grepl("^object$",colnames(data))){
-    obj_num <- unique(data$object)
-    for(i in 1:obj_num){
+  if(TRUE %in% grepl("^object$",tolower(colnames(data)))){
+    # in case the object column isn't named 'object'
+    obj_col <- grep("^object$",tolower(colnames(data)))
+    colnames(data)[obj_col] <- "object"
+    # identifying all objects and taking the first data point for each
+    obj_nums <- unique(data$object)
+    for(i in 1:obj_nums){
       entries <- grep(TRUE,data$object==i)
       if(length(entries)>1){
         data <- data[-entries[2:length(entries)],]
@@ -42,8 +46,10 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   
   # find which field will be used for the effort and change the name 
   # to match field name in mcds
-  if(TRUE %in% grepl("^Effort$",colnames(data))){
-    colnames(data)[grep("^Effort$",colnames(data))] <- "SMP_EFFORT"
+  if(TRUE %in% grepl("SMP_EFFORT",toupper(colnames(data)))){
+    colnames(data)[grep("^SMP_EFFORT",toupper(colnames(data)))] <- "SMP_EFFORT"
+  }else if(TRUE %in% grepl("^effort$",tolower(colnames(data)))){
+    colnames(data)[grep("^effort$",toupper(colnames(data)))] <- "SMP_EFFORT"
   }else if(TRUE %in% grepl("^Search.time$",colnames(data))){
     # !this may be a bit too specific to the example data in Distance
     colnames(data)[grep("^Search.time$",colnames(data))] <- "SMP_EFFORT"
@@ -51,20 +57,28 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     data$SMP_EFFORT <- rep(1,nrow(data))
   }
   
-  # find if Sample.Label is a field; if not, add it
-  if(TRUE %in% grepl("^Sample.Label$",colnames(data))){
-    colnames(data)[grep("^Sample.Label$",colnames(data))] <- "SMP_LABEL"
+  # find if SMP_LABEL is a field; if not, add it
+  if(TRUE %in% grepl("^SMP_LABEL",toupper(colnames(data)))){
+    colnames(data)[grep("^SMP_LABEL",toupper(colnames(data)))] <- "SMP_LABEL"
+  }else if(TRUE %in% grepl("^sample.label$",tolower(colnames(data)))){
+    colnames(data)[grep("^sample.label$",tolower(colnames(data)))] <- "SMP_LABEL"
   }else{
     data$SMP_LABEL <- rep(1,nrow(data))
   }
   
   # check if other defined fields are columns in the dataset
-  if(TRUE %in% grepl("^Region.Label$",colnames(data))){
-    colnames(data)[grep("^Region.Label$",colnames(data))] <- "STR_LABEL"
+  if(TRUE %in% grepl("^STR_LABEL$",toupper(colnames(data)))){
+    colnames(data)[grep("^STR_LABEL$",toupper(colnames(data)))] <- "STR_LABEL"
+    req_fields <- append(req_fields,"STR_LABEL")
+  }else if(TRUE %in% grepl("^region.label$",tolower(colnames(data)))){
+    colnames(data)[grep("^region.label$",tolower(colnames(data)))] <- "STR_LABEL"
     req_fields <- append(req_fields,"STR_LABEL")
   }
-  if(TRUE %in% grepl("^Area$",colnames(data))){
-    colnames(data)[grep("^Area$",colnames(data))] <- "STR_AREA"
+  if(TRUE %in% grepl("^STR_AREA$",toupper(colnames(data)))){
+    colnames(data)[grep("^STR_AREA$",toupper(colnames(data)))] <- "STR_AREA"
+    req_fields <- append(req_fields,"STR_AREA")
+  }else if(TRUE %in% grepl("^area$",tolower(colnames(data)))){
+    colnames(data)[grep("^area$",tolower(colnames(data)))] <- "STR_AREA"
     req_fields <- append(req_fields,"STR_AREA")
   }
   
@@ -108,7 +122,7 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   }
   
   # define whether there are clusters
-  if(TRUE %in% grepl("^size$",colnames(data))){
+  if(TRUE %in% grepl("^size$",tolower(colnames(data)))){
     cluster <- TRUE
     cat("OBJECT=CLUSTER;", file=command.file.name, "\n", append=TRUE)
   }else{
@@ -147,7 +161,7 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   cat(paste("FIELDS=", fields_comb, ";", sep=""), 
       file=command.file.name, "\n", append=TRUE)
   
-  # specifying which fields are factors
+  # specifying which fields are factor covariates
   factor_fields <- c()
   for(i in 1:length(colnames(data))){
     if(is.factor(data[,i]) && (TRUE %in% grepl(colnames(data)[i],covar_fields))){
@@ -199,6 +213,7 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     cat(" /ADJUST=POLY", file=command.file.name, append=TRUE)
   }
   
+  # the current way of evaluating mod_vals doesn't cope with vectors
   cat(" /ORDER=", mod_vals$adj.order, 
       file=command.file.name, append=TRUE)
   
