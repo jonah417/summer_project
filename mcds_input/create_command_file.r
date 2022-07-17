@@ -315,8 +315,8 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   # dealing with grouped data
   if(is.null(meta.data$binned) == FALSE){
     if(meta.data$binned == TRUE){
-      cat(" /INTERVALS=", paste(meta.data$breaks, collapse=","), 
-         file=command.file.name, append=TRUE)
+      cat(paste(" /INTERVALS=", paste(meta.data$breaks, collapse=","),
+                collapse=","), file=command.file.name, append=TRUE)
     }
   }
   
