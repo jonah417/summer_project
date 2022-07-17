@@ -98,9 +98,13 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     index <- grep(covars[i],colnames(data))
     covar_fields[i] <- colnames(data)[index]
   }
-  # the required fields cannot be covariates in the model
+  
+  # the required fields cannot be covariates in the model, with the exception of size
   if(length(intersect(req_fields,covar_fields)) > 0){
     covar_fields <- covar_fields[! covar_fields %in% intersect(req_fields,covar_fields)]
+  }
+  if(TRUE %in% grepl("size",covar_fields)){
+    covar_fields <- append(covar_fields,"SIZE")
   }
   
   req_fields <- c(req_fields,covar_fields)

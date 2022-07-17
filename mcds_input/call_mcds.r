@@ -3,8 +3,8 @@ dsmodel <- ~cds(key="hr",formula=~exposure+sex, adj.series="cos",
                 adj.order=c(2,4))
 mrmodel <- ~1
 method <- "ds"
-meta.data <- list(point=FALSE, width=5.0, left=0.0, binned=FALSE,
-                  mono.strict=FALSE)
+meta.data <- list(point=FALSE, width=5.0, left=0.0, binned=TRUE,
+                  mono.strict=FALSE, breaks=c(0,1,2,3,4))
 control <- list(showit=3)
 
 test_file <- create_command_file(dsmodel,mrmodel,golftees,method,
