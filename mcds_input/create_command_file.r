@@ -30,6 +30,7 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     # in case the object column isn't named 'object'
     obj_col <- grep("^object$",tolower(colnames(data)))
     colnames(data)[obj_col] <- "object"
+    print(colnames(data))
     # identifying all objects and taking the first data point for each
     obj_nums <- unique(data$object)
     for(i in 1:obj_nums){
@@ -44,12 +45,15 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   # create a vector of required fields
   req_fields <- c("SMP_LABEL","SMP_EFFORT","DISTANCE")
   
+  # change the distance column name to upper case
+  colnames(data)[grep("^distance$",tolower(colnames(data)))] <- "DISTANCE"
+  
   # find which field will be used for the effort and change the name 
   # to match field name in mcds
   if(TRUE %in% grepl("SMP_EFFORT",toupper(colnames(data)))){
     colnames(data)[grep("^SMP_EFFORT",toupper(colnames(data)))] <- "SMP_EFFORT"
   }else if(TRUE %in% grepl("^effort$",tolower(colnames(data)))){
-    colnames(data)[grep("^effort$",toupper(colnames(data)))] <- "SMP_EFFORT"
+    colnames(data)[grep("^effort$",tolower(colnames(data)))] <- "SMP_EFFORT"
   }else if(TRUE %in% grepl("^Search.time$",colnames(data))){
     # !this may be a bit too specific to the example data in Distance
     colnames(data)[grep("^Search.time$",colnames(data))] <- "SMP_EFFORT"
@@ -81,13 +85,18 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     colnames(data)[grep("^area$",tolower(colnames(data)))] <- "STR_AREA"
     req_fields <- append(req_fields,"STR_AREA")
   }
+  if(TRUE %in% grepl("^size$",tolower(colnames(data)))){
+    cluster <- TRUE
+    colnames(data)[grep("^size$",tolower(colnames(data)))] <- "SIZE"
+    req_fields <- append(req_fields,"SIZE")
+  }
   
   # specifying covariates in the model
   covars <- all.vars(dsmodel)
   covar_fields <- rep("",length(covars))
   for(i in 1:length(covars)){
     index <- grep(covars[i],colnames(data))
-    covar_fields[i] <- toupper(colnames(data)[index])
+    covar_fields[i] <- colnames(data)[index]
   }
   # the required fields cannot be covariates in the model
   if(length(intersect(req_fields,covar_fields)) > 0){
@@ -95,9 +104,11 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   }
   
   req_fields <- c(req_fields,covar_fields)
+  print(colnames(data))
+  print(req_fields)
   
   # remove all non-essential columns from the dataset
-  colnames(data) <- toupper(colnames(data))
+  #colnames(data) <- toupper(colnames(data))
   data <- data[req_fields]
   
   # create data file to pass to mcds
@@ -115,15 +126,16 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     cat(paste("DISTANCE=RADIAL /UNITS='Meters' /WIDTH=", 
         meta.data$width, ";", sep=""), file=command.file.name, "\n", 
         append=TRUE)
+    cat("TYPE=POINT;", file=command.file.name, "\n", append=TRUE)
   }else{
     cat(paste("DISTANCE=PERP /UNITS='Meters' /WIDTH=", 
         meta.data$width, ";", sep=""), file=command.file.name, "\n", 
         append=TRUE)
+    cat("TYPE=LINE;", file=command.file.name, "\n", append=TRUE)
   }
   
   # define whether there are clusters
-  if(TRUE %in% grepl("^size$",tolower(colnames(data)))){
-    cluster <- TRUE
+  if(cluster == TRUE){
     cat("OBJECT=CLUSTER;", file=command.file.name, "\n", append=TRUE)
   }else{
     cat("OBJECT=SINGLE;", file=command.file.name, "\n", append=TRUE)

@@ -5,8 +5,11 @@ output: pdf_document
 ---
 
 # Title
+
 ## Aim
 
-The Distance software, used to conduct analyses on datasets relating to animal abundance estimation, has two main engines, MCDS and MRDS. These engines use two distinct analysis methods; at times it may be useful to run both analyses and compare the results in order to determine which methods suits the problem best.  
-Both engines can be run from within the Distance software, however it can sometimes be useful to work directly with the code rather than running the analysis within Distance. One issue that this causes is that the MCDS engines is written in Fortran, whereas MRDS is written in R, and each engine has different input formats, so direct comparison can be complicated and time consuming.  
+The Distance software, used to conduct analyses on datasets relating to animal abundance estimation, has two main engines, MCDS and MRDS. These engines use two distinct analysis methods; at times it may be useful to run both analyses and compare the results in order to determine which methods suits the problem best.\
+
+Both engines can be run from within the Distance software, however it can sometimes be useful to work directly with the code rather than running the analysis within Distance. One issue that this causes is that the MCDS engines is written in Fortran, whereas MRDS is written in R, and each engine has different input formats, so direct comparison can be complicated and time consuming.\
+
 The aim of this project was to write a function in R which would take the input in the format it is provided to MRDS, and use that input to create a command file that would run an equivalent analysis in MCDS.
