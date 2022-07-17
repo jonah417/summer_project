@@ -1,6 +1,5 @@
 
-dsmodel <- ~cds(key="hr",formula=~exposure+sex, adj.series="cos",
-                adj.order=c(2,4))
+dsmodel <- ~cds(key="hr")
 mrmodel <- ~1
 method <- "ds"
 meta.data <- list(point=FALSE, width=5.0)

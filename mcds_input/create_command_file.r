@@ -92,22 +92,27 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   }
   
   # specifying covariates in the model
-  covars <- all.vars(dsmodel)
-  covar_fields <- rep("",length(covars))
-  for(i in 1:length(covars)){
-    index <- grep(covars[i],colnames(data))
-    covar_fields[i] <- colnames(data)[index]
+  if(identical(all.vars(dsmodel),character(0)) == FALSE){
+    covar_pres <- TRUE
+    covars <- all.vars(dsmodel)
+    covar_fields <- rep("",length(covars))
+    for(i in 1:length(covars)){
+      index <- grep(covars[i],colnames(data))
+      covar_fields[i] <- colnames(data)[index]
+    }
+    # the required fields cannot be covariates in the model, with the exception of size
+    if(length(intersect(req_fields,covar_fields)) > 0){
+      covar_fields <- covar_fields[! covar_fields %in% intersect(req_fields,covar_fields)]
+    }
+    if(TRUE %in% grepl("size",covar_fields)){
+      covar_fields <- append(covar_fields,"SIZE")
+    }
+    # add covariates to the fields that are kept for analysis
+    req_fields <- c(req_fields,covar_fields)
+  }else{
+    covar_pres <- FALSE
   }
   
-  # the required fields cannot be covariates in the model, with the exception of size
-  if(length(intersect(req_fields,covar_fields)) > 0){
-    covar_fields <- covar_fields[! covar_fields %in% intersect(req_fields,covar_fields)]
-  }
-  if(TRUE %in% grepl("size",covar_fields)){
-    covar_fields <- append(covar_fields,"SIZE")
-  }
-  
-  req_fields <- c(req_fields,covar_fields)
   print(colnames(data))
   print(req_fields)
   
@@ -178,15 +183,17 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
       file=command.file.name, "\n", append=TRUE)
   
   # specifying which fields are factor covariates
-  factor_fields <- c()
-  for(i in 1:length(colnames(data))){
-    if(is.factor(data[,i]) && (TRUE %in% grepl(colnames(data)[i],covar_fields))){
-      factor_fields <- append(factor_fields,colnames(data)[i])
-      labels <- paste(levels(data[,i]), collapse=",")
-      cat(paste("FACTOR /NAME=", toupper(colnames(data)[i]), 
-                " /LEVELS=", length(levels(data[,i])), " /LABELS=", 
-                labels, sep=""), file=command.file.name, "\n", 
-          append=TRUE)
+  if(covar_pres == TRUE){
+    factor_fields <- c()
+    for(i in 1:length(colnames(data))){
+      if(is.factor(data[,i]) && (TRUE %in% grepl(colnames(data)[i],covar_fields))){
+        factor_fields <- append(factor_fields,colnames(data)[i])
+        labels <- paste(levels(data[,i]), collapse=",")
+        cat(paste("FACTOR /NAME=", toupper(colnames(data)[i]), 
+                  " /LEVELS=", length(levels(data[,i])), " /LABELS=", 
+                  labels, sep=""), file=command.file.name, "\n", 
+            append=TRUE)
+      }
     }
   }
   
@@ -229,7 +236,7 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     cat(" /ADJUST=POLY", file=command.file.name, append=TRUE)
   }
   
-  # the current way of evaluating mod_vals doesn't cope with vectors
+  # !the current way of evaluating mod_vals doesn't cope with vectors
   cat(" /ORDER=", mod_vals$adj.order, 
       file=command.file.name, append=TRUE)
   
@@ -242,28 +249,32 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   cat(paste(" /NAP=", length(mod_vals$adj.order), sep=""), 
       file=command.file.name, append=TRUE)
   
-  cat(paste(" /COVARIATES=", paste(covar_fields,collapse=","), sep=""), 
-      file=command.file.name, append=TRUE)
+  if(covar_pres == TRUE){
+    cat(paste(" /COVARIATES=", paste(covar_fields,collapse=","), sep=""), 
+        file=command.file.name, append=TRUE)
+  }
   
   # allowing for initial values for the parameters
   inits <- c()
   if(is.null(control$initial) == FALSE){
-    # go through covariates in order
-    for(i in 1:length(covars)){
-      index <- grep(covar_fields[i],toupper(fields))
-      if(TRUE %in% grepl(covar_fields[i],factor_fields)){
-        for(j in 2:length(levels(data[,index]))){
+    # go through covariates in order, if they are present
+    if(covar_pres == TRUE){
+      for(i in 1:length(covars)){
+        index <- grep(covar_fields[i],toupper(fields))
+        if(TRUE %in% grepl(covar_fields[i],factor_fields)){
+          for(j in 2:length(levels(data[,index]))){
+            access_covar <- paste("control$initial$scale$",
+                                  colnames(data)[index],"[",j,"]",sep="")
+            inits <- append(inits,eval(parse(text=access_covar)))
+          }
           access_covar <- paste("control$initial$scale$",
-                                colnames(data)[index],"[",j,"]",sep="")
+                                colnames(data)[index],"[1]",sep="")
+          inits <- append(inits,eval(parse(text=access_covar)))
+        }else{
+          access_covar <- paste("control$initial$scale$",
+                                colnames(data)[index],sep="")
           inits <- append(inits,eval(parse(text=access_covar)))
         }
-        access_covar <- paste("control$initial$scale$",
-                              colnames(data)[index],"[1]",sep="")
-        inits <- append(inits,eval(parse(text=access_covar)))
-      }else{
-        access_covar <- paste("control$initial$scale$",
-                              colnames(data)[index],sep="")
-        inits <- append(inits,eval(parse(text=access_covar)))
       }
     }
     # add in shape parameter if hazard-rate used
