@@ -316,7 +316,7 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   if(is.null(meta.data$binned) == FALSE){
     if(meta.data$binned == TRUE){
       cat(paste(" /INTERVALS=", paste(meta.data$breaks, collapse=","),
-                collapse=","), file=command.file.name, append=TRUE)
+                sep=""), file=command.file.name, append=TRUE)
     }
   }
   

@@ -1,0 +1,23 @@
+C:\Users\jrm36\AppData\Local\Temp\out.txt 
+C:\Users\jrm36\AppData\Local\Temp\log.txt 
+C:\Users\jrm36\AppData\Local\Temp\stat.txt 
+C:\Users\jrm36\AppData\Local\Temp\plot.txt 
+None 
+None 
+OPTIONS; 
+DISTANCE=PERP /UNITS='Meters' /WIDTH=5; 
+TYPE=LINE; 
+OBJECT=CLUSTER; 
+PRINT=ALL; 
+SELECTION=SPECIFY; 
+END; 
+DATA /STRUCTURE=FLAT; 
+FIELDS=SMP_LABEL,SMP_EFFORT,DISTANCE,STR_LABEL,STR_AREA,SIZE,EXPOSURE,SEX; 
+INFILE=C:\Users\jrm36\AppData\Local\Temp\\dataf727c4bb21.txt /NOECHO; 
+END; 
+ESTIMATE; 
+DETECTION ALL; 
+ESTIMATOR /KEY=HAZARD /ADJUST=COSINE /ORDER= 2 4 /ADJSTD=W /NAP=2 /COVARIATES=exposure,sex; 
+MONOTONE=NONE; 
+DISTANCE /WIDTH=5 /INTERVALS=0,1,2,3,4 /LEFT=0; 
+END;
