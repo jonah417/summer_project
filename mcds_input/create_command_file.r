@@ -193,7 +193,7 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
       file=command.file.name, "\n", append=TRUE)
   cat("END;", file=command.file.name, "\n", append=TRUE)
   
-  print("data")
+  #print("data")
   
   # ESTIMATE section
   
