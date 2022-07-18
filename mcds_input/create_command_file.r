@@ -1,4 +1,8 @@
-# assuming the inputs are in the same form as those used in ddf.R
+# a function to take the input as required for the ddf function in mrds and
+# create a command file for the mcds engine, which will perform an equivalent
+# analysis.
+
+# the input for this function is the same as the input for ddf
 
 create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
                                 method,meta.data,control) {
@@ -10,7 +14,10 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
                                 fileext=".txt")
   command.file.name <- gsub("/","\\\\",command.file.name)
   file.create(command.file.name)
-  # output commands to it
+  
+  # HEADER section
+  
+  # specify the location of output files
   cat(paste(directory,"out.txt",sep=""), file=command.file.name, "\n", 
       append=TRUE)
   cat(paste(directory,"log.txt",sep=""), file=command.file.name, "\n", 
@@ -21,8 +28,8 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
       "\n", append=TRUE)
   cat("None", file=command.file.name, "\n", append=TRUE)
   cat("None", file=command.file.name, "\n", append=TRUE)
-  cat("OPTIONS;", file=command.file.name, "\n", append=TRUE)
   
+  # removing irrelevant data
   # combine data from multiple observers
   data <- data[data$detected==1,]
   if(TRUE %in% grepl("^object$",tolower(colnames(data)))){
@@ -40,7 +47,6 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     }
   }
   
-  # removing irrelevant data
   # create a vector of required fields
   req_fields <- c("SMP_LABEL","SMP_EFFORT","DISTANCE")
   
@@ -69,7 +75,8 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     data$SMP_LABEL <- rep(1,nrow(data))
   }
   
-  # check if other defined fields are columns in the dataset
+  # check if other defined fields are columns in the dataset; if they are add
+  # them to the list of fields to keep in the dataset
   if(TRUE %in% grepl("^STR_LABEL$",toupper(colnames(data)))){
     colnames(data)[grep("^STR_LABEL$",toupper(colnames(data)))] <- "STR_LABEL"
     req_fields <- append(req_fields,"STR_LABEL")
@@ -93,21 +100,27 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   # specifying covariates in the model
   if(identical(all.vars(dsmodel),character(0)) == FALSE){
     covar_pres <- TRUE
+    # extracting the list of covariates
     covars <- all.vars(dsmodel)
+    # creating a list of the fields for each covariate
     covar_fields <- rep("",length(covars))
     for(i in 1:length(covars)){
+      # identifying the field name for each covariate
       index <- grep(covars[i],tolower(colnames(data)))
       covar_fields[i] <- colnames(data)[index]
     }
     # the required fields cannot be covariates in the model, with the exception of size
     if(length(intersect(req_fields,covar_fields)) > 0){
       if(TRUE %in% grepl("size",tolower(covar_fields))){
+        # specify whether SIZE is a covariate
         size_cov <- TRUE
       }
+      # remove any required fields from the list of covariates
       covar_fields <- covar_fields[! covar_fields %in% intersect(req_fields,covar_fields)]
     }
     # add covariates to the fields that are kept for analysis
     req_fields <- c(req_fields,covar_fields)
+    # if SIZE is a covariate, add it back to the list of covariates
     if(size_covar == TRUE){
       covar_fields <- append(covar_fields,"SIZE")
     }
@@ -126,10 +139,10 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   write.table(data, file=data.file.name, col.names=FALSE, 
               row.names=FALSE, sep="\t")
   
-  print(colnames(data))
-  
   # OPTION section
   
+  cat("OPTIONS;", file=command.file.name, "\n", append=TRUE)
+  # specify the type of transect and its width and units
   if(meta.data$point == TRUE){
     cat(paste("DISTANCE=RADIAL /UNITS='Meters' /WIDTH=", 
         meta.data$width, ";", sep=""), file=command.file.name, "\n", 
@@ -155,7 +168,6 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
       cat("DEBUG=ON;", file=command.file.name, "\n", append=TRUE)
     }
   }
-  
   if(is.null(control$showit) == FALSE){
     output_info_levels <- c("SUMMARY","RESULTS","SELECTION","ALL")
     specified_output_level <- output_info_levels[control$showit+1]
@@ -182,7 +194,9 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   if(covar_pres == TRUE){
     factor_fields <- c()
     for(i in 1:length(colnames(data))){
+      # for each covariate, check if it is a factor
       if(is.factor(data[,i]) && (TRUE %in% grepl(colnames(data)[i],covar_fields))){
+        # if the covariate is a factor, specify its name, levels, and level labels
         factor_fields <- append(factor_fields,colnames(data)[i])
         labels <- paste(levels(data[,i]), collapse=",")
         cat(paste("FACTOR /NAME=", toupper(colnames(data)[i]), 
@@ -210,6 +224,7 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   mod_paste <- paste(dsmodel)
   mod_vals <- try(eval(parse(text=mod_paste[2:length(modpaste)])))
   
+  # specify the key function
   cat("ESTIMATOR /KEY=", file=command.file.name, append=TRUE)
   if(mod_vals$key == "hn"){
     cat("HNORMAL", file=command.file.name, append=TRUE)
@@ -221,8 +236,10 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     cat("NEXPON", file=command.file.name, append=TRUE)
   }
   
+  # check if adjustment terms are used
   if(is.null(mod_vals$adj.series) == FALSE){
     adj_pres <- TRUE
+    # specify the type of adjustment term
     if(mod_vals$adj.series == "cos"){
       cat(" /ADJUST=COSINE", file=command.file.name, append=TRUE)
     }else if(mod_vals$adj.series == "herm"){
@@ -230,20 +247,24 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     }else if(mod_vals$adj.series == "poly"){
       cat(" /ADJUST=POLY", file=command.file.name, append=TRUE)
     }
-
+    
+    # specify the order of adjustment terms
     cat(paste(" /ORDER=", paste(mod_vals$adj.order,collapse=","),sep=""), 
         file=command.file.name, append=TRUE)
   
+    # specify the scaling of adjustment parameters
     if(mod_vals$adj.scale == "width"){
       cat(" /ADJSTD=W", file=command.file.name, append=TRUE)
     }else{
       cat(" /ADJSTD=SIGMA", file=command.file.name, append=TRUE)
     }
-  
+    
+    # specify the number of adjustment parameters
     cat(paste(" /NAP=", length(mod_vals$adj.order), sep=""), 
         file=command.file.name, append=TRUE)
   }
   
+  # specify which fields are covariates
   if(covar_pres == TRUE){
     cat(paste(" /COVARIATES=", paste(covar_fields,collapse=","), sep=""), 
         file=command.file.name, append=TRUE)
@@ -321,6 +342,7 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     cat("MONOTONE=NONE;", file=command.file.name, "\n", append=TRUE)
   }
   
+  # specifying the truncation distance
   cat(paste("DISTANCE /WIDTH=",meta.data$width,sep=""), 
       file=command.file.name, append=TRUE)
   # dealing with grouped data
@@ -331,6 +353,7 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     }
   }
   
+  # specifying left trunction distance, if included in the input
   if(is.null(meta.data$left) == FALSE){
     cat(paste(" /LEFT=", meta.data$left, sep=""), 
         file=command.file.name, append=TRUE)
