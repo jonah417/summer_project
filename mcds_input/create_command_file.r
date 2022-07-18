@@ -97,25 +97,24 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     covars <- all.vars(dsmodel)
     covar_fields <- rep("",length(covars))
     for(i in 1:length(covars)){
-      index <- grep(covars[i],colnames(data))
+      index <- grep(covars[i],tolower(colnames(data)))
       covar_fields[i] <- colnames(data)[index]
     }
     # the required fields cannot be covariates in the model, with the exception of size
     if(length(intersect(req_fields,covar_fields)) > 0){
+      if(TRUE %in% grepl("size",tolower(covar_fields))){
+        size_cov <- TRUE
+      }
       covar_fields <- covar_fields[! covar_fields %in% intersect(req_fields,covar_fields)]
-    }
-    if(TRUE %in% grepl("size",covar_fields)){
-      covar_fields <- append(covar_fields,"SIZE")
     }
     # add covariates to the fields that are kept for analysis
     req_fields <- c(req_fields,covar_fields)
+    covar_fields <- append(covar_fields,"SIZE")
   }else{
     covar_pres <- FALSE
   }
   
-  print(colnames(data))
-  print(req_fields)
-  
+  print(covar_fields)
   # remove all non-essential columns from the dataset
   #colnames(data) <- toupper(colnames(data))
   data <- data[req_fields]
@@ -127,6 +126,8 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   file.create(data.file.name)
   write.table(data, file=data.file.name, col.names=FALSE, 
               row.names=FALSE, sep="\t")
+  
+  print(colnames(data))
   
   # OPTION section
   
@@ -170,8 +171,6 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
       append=TRUE)
   cat("END;", file=command.file.name, "\n", append=TRUE)
   
-  print("options")
-  
   # DATA section
   
   cat("DATA /STRUCTURE=FLAT;", file=command.file.name, "\n", 
@@ -198,13 +197,10 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   }
   
   # input the absolute path to the data file
-  #data.file.name <- paste("C:",data.file.name,sep="")
   gsub("/","\\\\",data.file.name)
   cat(paste("INFILE=", data.file.name, " /NOECHO;", sep=""), 
       file=command.file.name, "\n", append=TRUE)
   cat("END;", file=command.file.name, "\n", append=TRUE)
-  
-  #print("data")
   
   # ESTIMATE section
   
@@ -229,6 +225,7 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   }
   
   if(is.null(mod_vals$adj.series) == FALSE){
+    adj_pres <- TRUE
     if(mod_vals$adj.series == "cos"){
       cat(" /ADJUST=COSINE", file=command.file.name, append=TRUE)
     }else if(mod_vals$adj.series == "herm"){
@@ -261,20 +258,28 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   if(is.null(control$initial) == FALSE){
     # go through covariates in order, if they are present
     if(covar_pres == TRUE){
+      print(length(covars))
       for(i in 1:length(covars)){
-        index <- grep(covar_fields[i],toupper(fields))
+        index <- grep(toupper(covar_fields[i]),toupper(colnames(data)))
+        print(index)
+        print(covar_fields)
+        print(colnames(data))
         if(TRUE %in% grepl(covar_fields[i],factor_fields)){
           for(j in 2:length(levels(data[,index]))){
+            #print(colnames(data)[index])
             access_covar <- paste("control$initial$scale$",
                                   colnames(data)[index],"[",j,"]",sep="")
             inits <- append(inits,eval(parse(text=access_covar)))
           }
+          # the first level has to be last in MCDS
           access_covar <- paste("control$initial$scale$",
                                 colnames(data)[index],"[1]",sep="")
           inits <- append(inits,eval(parse(text=access_covar)))
         }else{
+          print(colnames(data)[index])
           access_covar <- paste("control$initial$scale$",
                                 colnames(data)[index],sep="")
+          print(access_covar)
           inits <- append(inits,eval(parse(text=access_covar)))
         }
       }
@@ -284,8 +289,10 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
       inits <- append(inits,control$initial$shape)
     }
     # add in adjustment initial values
-    for(i in 1:length(mod_vals$adj.order)){
-      inits <- append(inits,control$initial$adjustment[i])
+    if(adj_pres){
+      for(i in 1:length(mod_vals$adj.order)){
+        inits <- append(inits,control$initial$adjustment[i])
+      }
     }
     print(inits)
     cat(paste(" /START=", paste(inits,collapse=","), sep=""), 
@@ -301,8 +308,6 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     cat(paste(" /UPPER=", paste(control$upperbounds,collapse=","), sep=""), 
         file=command.file.name, append=TRUE)
   }
-  
-  print("estimate")
   
   # ending the ESTIMATOR line
   cat(";", file=command.file.name, "\n", append=TRUE)
