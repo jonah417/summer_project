@@ -228,26 +228,28 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     cat("NEXPON", file=command.file.name, append=TRUE)
   }
   
-  if(mod_vals$adj.series == "cos"){
-    cat(" /ADJUST=COSINE", file=command.file.name, append=TRUE)
-  }else if(mod_vals$adj.series == "herm"){
-    cat(" /ADJUST=HERMITE", file=command.file.name, append=TRUE)
-  }else if(mod_vals$adj.series == "poly"){
-    cat(" /ADJUST=POLY", file=command.file.name, append=TRUE)
+  if(is.null(mod_vals$adj.series) == FALSE){
+    if(mod_vals$adj.series == "cos"){
+      cat(" /ADJUST=COSINE", file=command.file.name, append=TRUE)
+    }else if(mod_vals$adj.series == "herm"){
+      cat(" /ADJUST=HERMITE", file=command.file.name, append=TRUE)
+    }else if(mod_vals$adj.series == "poly"){
+      cat(" /ADJUST=POLY", file=command.file.name, append=TRUE)
+    }
+  
+    # !the current way of evaluating mod_vals doesn't cope with vectors
+    cat(" /ORDER=", mod_vals$adj.order, 
+        file=command.file.name, append=TRUE)
+  
+    if(mod_vals$adj.scale == "width"){
+      cat(" /ADJSTD=W", file=command.file.name, append=TRUE)
+    }else{
+      cat(" /ADJSTD=SIGMA", file=command.file.name, append=TRUE)
+    }
+  
+    cat(paste(" /NAP=", length(mod_vals$adj.order), sep=""), 
+        file=command.file.name, append=TRUE)
   }
-  
-  # !the current way of evaluating mod_vals doesn't cope with vectors
-  cat(" /ORDER=", mod_vals$adj.order, 
-      file=command.file.name, append=TRUE)
-  
-  if(mod_vals$adj.scale == "width"){
-    cat(" /ADJSTD=W", file=command.file.name, append=TRUE)
-  }else{
-    cat(" /ADJSTD=SIGMA", file=command.file.name, append=TRUE)
-  }
-  
-  cat(paste(" /NAP=", length(mod_vals$adj.order), sep=""), 
-      file=command.file.name, append=TRUE)
   
   if(covar_pres == TRUE){
     cat(paste(" /COVARIATES=", paste(covar_fields,collapse=","), sep=""), 
