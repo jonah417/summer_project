@@ -160,5 +160,65 @@ cat("ESTIMATOR /KEY=", file=command.file.name, append=TRUE)
 
 ### Rearranging Initial Values
 
+It is possible to enter initial values as part of the control input of MRDS, however accessing these values in a way that could be inputted into MCDS was challenging. The `r control$initial` input is a named list with three available parameters, `r $scale`, `r $shape`, and `r $adjustment`. The scale parameter will contain the initial values for any covariates in the key function, which must be inputted into the MCDS command first, before any initial values for the adjustment parameters.
+
+In order to input the initial values in the same order as the covariates are specified in the covariate command, I created a string starting with `r control$initial$shape$` and concatenated the covariate name, then evaluated the text to access the initial value.
+
+```{r}
+      inits <- c()
+      for(i in 1:length(covars)){
+        # find the index of the covariate field
+        index <- grep(toupper(covar_fields[i]),toupper(colnames(data)))
+        # create the text for the parameter that must be accessed
+        access_covar <- paste("control$initial$scale$",
+                                colnames(data)[index],sep="")
+        # evaluate the text in order to access the initial value
+        inits <- append(inits,eval(parse(text=access_covar)))
+      }
+```
+
+When a covariate is a factor, an initial value must be given for each level. The order in which they are inputted varies between MRDS and MCDS, however the first level is absorbed for the analysis; this level must be inputted last in MCDS to be absorbed, so the initial value for the first factor level is placed at the end when listed in the /START switch in MCDS. In order to do this, I included an if statement in the above for loop which identified and dealt with factors:
+
+```{r}
+       if(TRUE %in% grepl(covar_fields[i],factor_fields)){
+          for(j in 2:length(levels(data[,index]))){
+            # create the text for the parameter that must be accessed
+            access_covar <- paste("control$initial$scale$",
+                                  colnames(data)[index],"[",j,"]",sep="")
+            # evaluate the text in order to access the initial value
+            inits <- append(inits,eval(parse(text=access_covar)))
+          }
+          # the first level has to be last in MCDS
+          access_covar <- paste("control$initial$scale$",
+                                colnames(data)[index],"[1]",sep="")
+          inits <- append(inits,eval(parse(text=access_covar)))
+        }
+```
+
+These could then be combined and inputted into the /START switch:
+
+```{r}
+cat(paste(" /START=", paste(inits,collapse=","), sep=""), 
+        file=command.file.name, append=TRUE)
+```
+
+The full code can be found in the repository:
+
 ## Next Steps
+
+There are still a few issues with this code, and areas I unfortunately did not have time to cover, which I have detailed here
+
+### Known Issues with the Current Code
+
+Currently the function outputs the file name of the command file, however I was not able to access and run the MCDS engine with this command file from within R itself. While testing the code, I generated the file in R and then downloaded it to my own device to test it in MCDS. In order to conduct comparisons more easily, it would be ideal if it were possible to run the command file in MCDS from R.
+
+Another issue arose from the current method of accessing the parameters from dsmodel, in particular this method seems to struggle to parse vectors. While testing the code, I found that, when inputting a vector to the `r $adj_order` parameter, it was evaluated as a single value, and was therefore not inputted into the /ORDER switch correctly.
+
+```{r}
+dsmodel <- ~cds(key="hr",adj.series="cos",adj.order=c(2,4),adj.scale="width")
+mod_paste <- paste(dsmodel)
+mod_vals <- try(eval(parse(text=mod_paste[2:length(modpaste)])))
+
+print(mod_vals$adj.order)
+```
 

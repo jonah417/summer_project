@@ -116,7 +116,6 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     covar_pres <- FALSE
   }
   
-  print(covar_fields)
   # remove all non-essential columns from the dataset
   #colnames(data) <- toupper(colnames(data))
   data <- data[req_fields]
@@ -237,7 +236,7 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     }
   
     # !the current way of evaluating mod_vals doesn't cope with vectors
-    cat(" /ORDER=", mod_vals$adj.order, 
+    cat(paste(" /ORDER=", paste(mod_vals$adj.order,collapse=","),sep=""), 
         file=command.file.name, append=TRUE)
   
     if(mod_vals$adj.scale == "width"){
@@ -260,17 +259,16 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   if(is.null(control$initial) == FALSE){
     # go through covariates in order, if they are present
     if(covar_pres == TRUE){
-      print(length(covars))
       for(i in 1:length(covars)){
+        # find the index of the covariate field
         index <- grep(toupper(covar_fields[i]),toupper(colnames(data)))
-        print(index)
-        print(covar_fields)
-        print(colnames(data))
+        # if the covariate is a factor, initial values must be given for each level
         if(TRUE %in% grepl(covar_fields[i],factor_fields)){
           for(j in 2:length(levels(data[,index]))){
-            #print(colnames(data)[index])
+            # create the text for the parameter that must be accessed
             access_covar <- paste("control$initial$scale$",
                                   colnames(data)[index],"[",j,"]",sep="")
+            # evaluate the text in order to access the initial value
             inits <- append(inits,eval(parse(text=access_covar)))
           }
           # the first level has to be last in MCDS
@@ -278,10 +276,8 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
                                 colnames(data)[index],"[1]",sep="")
           inits <- append(inits,eval(parse(text=access_covar)))
         }else{
-          print(colnames(data)[index])
           access_covar <- paste("control$initial$scale$",
                                 colnames(data)[index],sep="")
-          print(access_covar)
           inits <- append(inits,eval(parse(text=access_covar)))
         }
       }
@@ -296,7 +292,7 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
         inits <- append(inits,control$initial$adjustment[i])
       }
     }
-    print(inits)
+    # paste all the initial values together
     cat(paste(" /START=", paste(inits,collapse=","), sep=""), 
         file=command.file.name, append=TRUE)
   }
