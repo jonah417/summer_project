@@ -154,7 +154,7 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   # managing the output options
   if(is.null(control$debug) == FALSE){
     if(control$debug == TRUE){
-      cat("DEBUG=TRUE;", file=command.file.name, "\n", append=TRUE)
+      cat("DEBUG=ON;", file=command.file.name, "\n", append=TRUE)
     }
   }
   

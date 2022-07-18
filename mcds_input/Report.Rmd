@@ -8,8 +8,47 @@ output: pdf_document
 
 ## Aim
 
-The Distance software, used to conduct analyses on datasets relating to animal abundance estimation, has two main engines, MCDS and MRDS. These engines use two distinct analysis methods; at times it may be useful to run both analyses and compare the results in order to determine which methods suits the problem best.\
-
-Both engines can be run from within the Distance software, however it can sometimes be useful to work directly with the code rather than running the analysis within Distance. One issue that this causes is that the MCDS engines is written in Fortran, whereas MRDS is written in R, and each engine has different input formats, so direct comparison can be complicated and time consuming.\
+The Distance software, used to conduct analyses on datasets relating to animal abundance estimation, has multiple engines to perform analyses; the two engines of interest for this project were MCDS and MRDS. Both engines can be run from within the Distance software, however it can sometimes be useful to work directly with the code rather than running the analysis within Distance. In particular, running the same analysis in multiple engines may help determine which method of analysis is most appropriate. One issue that this raises is that the MCDS engines is written in Fortran, whereas MRDS is written in R, and each engine has different input formats, so direct comparison can be complicated and time consuming.\
 
 The aim of this project was to write a function in R which would take the input in the format it is provided to MRDS, and use that input to create a command file that would run an equivalent analysis in MCDS.
+
+## Method
+
+During the first two weeks of this project, I familiarised myself with the broader theory of distance sampling and read through the relevant R code in the MRDS package, in particular ddf.R and associated functions. I also read through some code previously written to investigate comparison of MCDS and MRDS, provided in the optimist repository, which I copied to my own repository.
+
+Once I had familiarised myself with this code, I started to write my own function. The MCDS command file has four main sections, the header section, options section, data section, and estimate section. Within each are commands specifying aspects of how the analysis should be performed; I worked through each section and matched up the input required for MRDS to the commands required for MCDS.
+
+Certain commands translated from one engine to another very directly, for example whether the data is from line or point transects. For MRDS, the user specifies if the data is from a point transect or not in the meta.data input:
+
+```{r}
+meta.data=list(point=TRUE,width=5.0)
+```
+
+Within MCDS, the TYPE command has three possible values, LINE, POINT, or CUE. MRDS has no way of specifying whether the input is from cue counts, so the function will only assign either POINT or LINE to the TYPE command. As the inputs were very similar, the code for this command was fairly simple:
+
+```{r}
+if(meta.data$point == TRUE){
+    cat(paste("DISTANCE=RADIAL /UNITS='Meters' /WIDTH=", 
+        meta.data$width, ";", sep=""), file=command.file.name, "\n", 
+        append=TRUE)
+    cat("TYPE=POINT;", file=command.file.name, "\n", append=TRUE)
+  }else{
+    cat(paste("DISTANCE=PERP /UNITS='Meters' /WIDTH=", 
+        meta.data$width, ";", sep=""), file=command.file.name, "\n", 
+        append=TRUE)
+    cat("TYPE=LINE;", file=command.file.name, "\n", append=TRUE)
+  }
+```
+
+Beyond this, the translation from one engine's input to the other was less direct, so more complex code was required to extract the relevant information from the MRDS input.
+
+### Reformatting the Data
+
+
+
+### Accessing Model Parameters (include factors)
+
+### Rearranging Initial Values
+
+## Next Steps
+
