@@ -114,11 +114,11 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
       if(TRUE %in% grepl("size",tolower(covar_fields))){
         # specify whether SIZE is a covariate
         size_cov <- TRUE
-      }else{
-        size_cov <- FALSE
       }
       # remove any required fields from the list of covariates
       covar_fields <- covar_fields[! covar_fields %in% intersect(req_fields,covar_fields)]
+    }else{
+      size_cov <- FALSE
     }
     # add covariates to the fields that are kept for analysis
     req_fields <- c(req_fields,covar_fields)
