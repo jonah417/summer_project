@@ -1,6 +1,0 @@
-/tmp/RtmpFIUMuRout.txt 
-/tmp/RtmpFIUMuRlog.txt 
-/tmp/RtmpFIUMuRstat.txt 
-/tmp/RtmpFIUMuRplot.txt 
-None 
-None 
