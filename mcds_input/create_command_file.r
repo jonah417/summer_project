@@ -3,8 +3,7 @@
 create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
                                 method,meta.data,control) {
   # create a temporary directory
-  directory <- "C:\\Users\\jrm36\\AppData\\Local\\Temp\\"
-  #directory <- tempdir()
+  directory <- tempdir()
   
   # create command file
   command.file.name <- tempfile(pattern="cmdtmp", tmpdir=directory,
@@ -117,7 +116,6 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   }
   
   # remove all non-essential columns from the dataset
-  #colnames(data) <- toupper(colnames(data))
   data <- data[req_fields]
   
   # create data file to pass to mcds
@@ -132,7 +130,6 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   
   # OPTION section
   
-  # !consider the case where TYPE="LINE" but DISTANCE="RADIAL"?
   if(meta.data$point == TRUE){
     cat(paste("DISTANCE=RADIAL /UNITS='Meters' /WIDTH=", 
         meta.data$width, ";", sep=""), file=command.file.name, "\n", 
@@ -159,7 +156,6 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     }
   }
   
-  # !not sure if the output levels match completely
   if(is.null(control$showit) == FALSE){
     output_info_levels <- c("SUMMARY","RESULTS","SELECTION","ALL")
     specified_output_level <- output_info_levels[control$showit+1]
@@ -234,8 +230,7 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     }else if(mod_vals$adj.series == "poly"){
       cat(" /ADJUST=POLY", file=command.file.name, append=TRUE)
     }
-  
-    # !the current way of evaluating mod_vals doesn't cope with vectors
+
     cat(paste(" /ORDER=", paste(mod_vals$adj.order,collapse=","),sep=""), 
         file=command.file.name, append=TRUE)
   

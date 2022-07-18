@@ -206,19 +206,11 @@ The full code can be found in the repository:
 
 ## Next Steps
 
-There are still a few issues with this code, and areas I unfortunately did not have time to cover, which I have detailed here
-
-### Known Issues with the Current Code
+There are still a few issues with this code, and areas I unfortunately did not have time to cover, which I have detailed here.
 
 Currently the function outputs the file name of the command file, however I was not able to access and run the MCDS engine with this command file from within R itself. While testing the code, I generated the file in R and then downloaded it to my own device to test it in MCDS. In order to conduct comparisons more easily, it would be ideal if it were possible to run the command file in MCDS from R.
 
-Another issue arose from the current method of accessing the parameters from dsmodel, in particular this method seems to struggle to parse vectors. While testing the code, I found that, when inputting a vector to the `r $adj_order` parameter, it was evaluated as a single value, and was therefore not inputted into the /ORDER switch correctly.
+There is also currently no way of specifying data where TYPE=LINE but DISTANCE=RADIAL; a potential way to include this may be to check if there is a column within the dataset for the angle, which would be a required column in MCDS in this case, however that may not be a watertight way to identify the input type correctly. There is also currently no way of specifying if cue counts were used, therefore TYPE=CUE is never used in this function.
 
-```{r}
-dsmodel <- ~cds(key="hr",adj.series="cos",adj.order=c(2,4),adj.scale="width")
-mod_paste <- paste(dsmodel)
-mod_vals <- try(eval(parse(text=mod_paste[2:length(modpaste)])))
-
-print(mod_vals$adj.order)
-```
+Additionally, it would be beneficial to perform more test on the code. I was able to test some standard inputs, as well as testing that the function deals with incomplete input (for example models with no adjustment parameters, and empty control inputs), however more testing of fringe cases should be considered.
 
