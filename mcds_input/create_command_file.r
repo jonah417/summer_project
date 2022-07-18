@@ -27,7 +27,7 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   # combine data from multiple observers
   data <- data[data$detected==1,]
   if(TRUE %in% grepl("^object$",tolower(colnames(data)))){
-    # in case the object column isn't named 'object'
+    # in case the object column isn't named 'object', to remove case sensitivity
     obj_col <- grep("^object$",tolower(colnames(data)))
     colnames(data)[obj_col] <- "object"
     # identifying all objects and taking the first data point for each
@@ -109,7 +109,9 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     }
     # add covariates to the fields that are kept for analysis
     req_fields <- c(req_fields,covar_fields)
-    covar_fields <- append(covar_fields,"SIZE")
+    if(size_covar == TRUE){
+      covar_fields <- append(covar_fields,"SIZE")
+    }
   }else{
     covar_pres <- FALSE
   }

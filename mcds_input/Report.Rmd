@@ -44,9 +44,119 @@ Beyond this, the translation from one engine's input to the other was less direc
 
 ### Reformatting the Data
 
+In MRDS, the data is inputted as a data frame, however the MCDS engine requires a data file as its data input. Furthermore, MCDS has very strict requirements for which fields are present and what they are named, therefore it was necessary to rename required fields and remove all others from the dataframe.
 
+Firstly, since MRDS is used for Mark-Recapture surveys, the data produced often has multiple entries for each observed object, one for each observer and a column specifying whether the object was recorded by each observer. In MCDS, we are only interested in the observed objects, so much of this information about observers and whether each object was detected was redundant. To deal with this, first only the entries for observed objects were kept:
 
-### Accessing Model Parameters (include factors)
+```{r}
+data <- data[data$detected==1,]
+```
+
+However, there were still duplicate entries as some objects may have been detected by multiple observers. To remove these duplicates, such objects were identified and only one entry was kept for each object.
+
+```{r}
+if(TRUE %in% grepl("^object$",tolower(colnames(data)))){
+    # in case the object column isn't named 'object', to remove case sensitivity
+    obj_col <- grep("^object$",tolower(colnames(data)))
+    colnames(data)[obj_col] <- "object"
+    # identifying all objects and taking the first data point for each
+    obj_nums <- unique(data$object)
+    for(i in 1:length(obj_nums)){
+      entries <- grep(TRUE,data$object==i)
+      if(length(entries)>1){
+        remove <- entries[-1]
+        data <- data[-remove,]
+      }
+    }
+  }
+```
+
+After this, the required fields were identified. MCDS requires that there are fields for sample label, sample effort, and distance, named SMP_LABEL, SMP_EFFORT, and DISTANCE respectively. If the data is from clusters, then SIZE is also a required field. Additionally, STR_LABEL and STR_AREA may be specified; all other fields must be covariates in the model.
+
+In order to allow for slight variation in the data format, I allowed for different names for these fields, based upon the example data given in Distance; this also made testing the code with that data much easier. Therefore, the code was able to identify which field in the dataframe corresponded to each required field, and renamed them if necessary. For the three required fields the function also created a dummy field if it were not present in the initial dataset. An example of this for the SMP_LABEL field:
+
+```{r}
+# find if SMP_LABEL is a field; if not, add it
+  if(TRUE %in% grepl("^SMP_LABEL",toupper(colnames(data)))){
+    colnames(data)[grep("^SMP_LABEL",toupper(colnames(data)))] <- "SMP_LABEL"
+  }else if(TRUE %in% grepl("^sample.label$",tolower(colnames(data)))){
+    colnames(data)[grep("^sample.label$",tolower(colnames(data)))] <- "SMP_LABEL"
+  }else{
+    data$SMP_LABEL <- rep(1,nrow(data))
+  }
+```
+
+Once these specified fields had been identified, only the covariate fields were left to identify. To do this, the covariates were extracted from the model inputted in dsmodel and the matching fields were identified. MCDS does not allow any of the aforementioned required fields to be covariates, with the excption of SIZE, so an additional check was included to ensure that this did not happen:
+
+```{r}
+    covars <- all.vars(dsmodel)
+    covar_fields <- rep("",length(covars))
+    for(i in 1:length(covars)){
+      index <- grep(covars[i],tolower(colnames(data)))
+      covar_fields[i] <- colnames(data)[index]
+    }
+    # the required fields cannot be covariates in the model, with the exception of size
+    if(length(intersect(req_fields,covar_fields)) > 0){
+      if(TRUE %in% grepl("size",tolower(covar_fields))){
+        size_cov <- TRUE
+      }
+      covar_fields <- covar_fields[! covar_fields %in% intersect(req_fields,covar_fields)]
+    }
+    # add covariates to the fields that are kept for analysis
+    req_fields <- c(req_fields,covar_fields)
+    if(size_covar == TRUE){
+      covar_fields <- append(covar_fields,"SIZE")
+    }
+```
+
+The variable req_fields was then used to specify which fields were to be kept in the data used for analysis with the line `r data <- data[req_fields]`. The data could then be written into a data file that can be accessed by the MCDS command file.
+
+Since the columns of the dataframe had then been renamed, they could be inputted into the FIELDS command:
+
+```{r}
+cat(paste("FIELDS=", fields_comb, ";", sep=""), 
+      file=command.file.name, "\n", append=TRUE)
+```
+
+One additional complication was the factor covariates must be specified in MCDS, however this is not required for MRDS, therefore there was no input specifying which fields are factors. When the levels of a factor are numeric, the `r as.factor()` will not recognise it as a factor, therefore when inputting factor data the user must use characters as the levels. To identify and specify which covariates are factors and write a FACTOR command for each, the following code was used:
+
+```{r}
+    factor_fields <- c()
+    for(i in 1:length(colnames(data))){
+      if(is.factor(data[,i]) && (TRUE %in% grepl(colnames(data)[i],covar_fields))){
+        factor_fields <- append(factor_fields,colnames(data)[i])
+        labels <- paste(levels(data[,i]), collapse=",")
+        cat(paste("FACTOR /NAME=", toupper(colnames(data)[i]), 
+                  " /LEVELS=", length(levels(data[,i])), " /LABELS=", 
+                  labels, sep=""), file=command.file.name, "\n", 
+            append=TRUE)
+      }
+    }
+```
+
+### Accessing Model Parameters
+
+Due to the hybrid formula/function notation used to specify dsmodel, the usual $ notation does not work to access the parameters. Instead, a fairly clunky method of accessing them which has been used in code elsewhere in the mrds package was used:
+
+```{r}
+  mod_paste <- paste(dsmodel)
+  mod_vals <- try(eval(parse(text=mod_paste[2:length(modpaste)])))
+```
+
+From this, the required information about the model specifications could be obtained to pass through to MCDS, such as the key function to be used:
+
+```{r}
+cat("ESTIMATOR /KEY=", file=command.file.name, append=TRUE)
+  if(mod_vals$key == "hn"){
+    cat("HNORMAL", file=command.file.name, append=TRUE)
+  }else if(mod_vals$key == "hr"){
+    cat("HAZARD", file=command.file.name, append=TRUE)
+  }else if(mod_vals$key == "unif"){
+    cat("UNIFORM", file=command.file.name, append=TRUE)
+  }else{
+    cat("NEXPON", file=command.file.name, append=TRUE)
+  }
+```
 
 ### Rearranging Initial Values
 
