@@ -30,13 +30,13 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     # in case the object column isn't named 'object'
     obj_col <- grep("^object$",tolower(colnames(data)))
     colnames(data)[obj_col] <- "object"
-    print(colnames(data))
     # identifying all objects and taking the first data point for each
     obj_nums <- unique(data$object)
-    for(i in 1:obj_nums){
+    for(i in 1:length(obj_nums)){
       entries <- grep(TRUE,data$object==i)
       if(length(entries)>1){
-        data <- data[-entries[2:length(entries)],]
+        remove <- entries[-1]
+        data <- data[-remove,]
       }
     }
   }
