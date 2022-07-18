@@ -123,7 +123,7 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
     # add covariates to the fields that are kept for analysis
     req_fields <- c(req_fields,covar_fields)
     # if SIZE is a covariate, add it back to the list of covariates
-    if(size_covar == TRUE){
+    if(size_cov == TRUE){
       covar_fields <- append(covar_fields,"SIZE")
     }
   }else{
