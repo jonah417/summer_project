@@ -110,10 +110,12 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
       covar_fields[i] <- colnames(data)[index]
     }
     # the required fields cannot be covariates in the model, with the exception of size
-    if(length(intersect(req_fields,covar_fields)) > 0){
+    if(length(intersect(tolower(req_fields),tolower(covar_fields))) > 0){
       if(TRUE %in% grepl("size",tolower(covar_fields))){
         # specify whether SIZE is a covariate
         size_cov <- TRUE
+      }else{
+        size_cov <- FALSE
       }
       # remove any required fields from the list of covariates
       covar_fields <- covar_fields[! covar_fields %in% intersect(req_fields,covar_fields)]
