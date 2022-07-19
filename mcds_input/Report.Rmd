@@ -4,8 +4,6 @@ author: "Joanna McArthur"
 output: pdf_document
 ---
 
-# Title
-
 ## Aim
 
 The Distance software, used to conduct analyses on datasets relating to animal abundance estimation, has multiple engines to perform analyses; the two engines of interest for this project were MCDS and MRDS. Both engines can be run from within the Distance software, however it can sometimes be useful to work directly with the code. In particular, running the same analysis in multiple engines may help determine which method of analysis is most appropriate. One issue that this raises is that the MCDS engines is written in Fortran, whereas MRDS is written in R, and each engine has different input formats, so direct comparison can be complicated and time consuming.
@@ -26,7 +24,7 @@ meta.data=list(point=TRUE,width=5.0)
 
 Within MCDS, the TYPE command has three possible values, LINE, POINT, or CUE. MRDS has no way of specifying whether the input is from cue counts, so the function will only assign either POINT or LINE to the TYPE command. As the inputs were very similar, the code for this command was fairly simple:
 
-```{r}
+```{r eval=FALSE}
   if(meta.data$point == TRUE){
     cat(paste("DISTANCE=RADIAL /UNITS='Meters' /WIDTH=", 
         meta.data$width, ";", sep=""), file=command.file.name, "\n", 
@@ -48,13 +46,13 @@ In MRDS, the data is inputted as a data frame, however the MCDS engine requires 
 
 Firstly, since MRDS is used for mark-recapture surveys, the data produced often has multiple entries for each observed object, one for each observer and a column specifying whether the object was recorded by each observer. In MCDS, we are only interested in the observed objects, so much of this information about observers and whether each object was detected was redundant. To deal with this, first only the entries for observed objects were kept:
 
-```{r}
+```{r eval=FALSE}
 data <- data[data$detected==1,]
 ```
 
 However, there were still duplicate entries as some objects may have been detected by multiple observers. To remove these duplicates, such objects were identified and only one entry was kept for each object.
 
-```{r}
+```{r eval=FALSE}
 if(TRUE %in% grepl("^object$",tolower(colnames(data)))){
     # in case the object column isn't named 'object', to remove case sensitivity
     obj_col <- grep("^object$",tolower(colnames(data)))
@@ -75,7 +73,7 @@ After this, the required fields were identified. MCDS requires that there are fi
 
 In order to allow for slight variation in the data format, I allowed for different names for these fields, based upon the example data given in Distance; this also made testing the code with that data much easier. Therefore, the code was able to identify which field in the data frame corresponded to each required field, and renamed them if necessary. For the three required fields the function also created a dummy field if it were not present in the initial dataset. An example of this for the SMP_LABEL field:
 
-```{r}
+```{r eval=FALSE}
 # find if SMP_LABEL is a field; if not, add it
   if(TRUE %in% grepl("^SMP_LABEL",toupper(colnames(data)))){
     colnames(data)[grep("^SMP_LABEL",toupper(colnames(data)))] <- "SMP_LABEL"
@@ -88,7 +86,7 @@ In order to allow for slight variation in the data format, I allowed for differe
 
 Once these specified fields had been identified, only the covariate fields were left to identify. To do this, the covariates were extracted from the model inputted in dsmodel and the matching fields were identified. MCDS does not allow any of the aforementioned required fields to be covariates, with the execption of SIZE, so an additional check was included to ensure that this did not happen:
 
-```{r}
+```{r eval=FALSE}
     # extracting the list of covariates
     covars <- all.vars(dsmodel)
     # creating a list of the fields for each covariate
@@ -117,18 +115,18 @@ Once these specified fields had been identified, only the covariate fields were 
     }
 ```
 
-The variable req_fields was then used to specify which fields were to be kept in the data used for analysis with the line `r data <- data[req_fields]`. The data could then be written into a data file that can be accessed by the MCDS command file.
+The vector of required fields was then used to specify which fields were to be kept in the data used for analysis. The data could then be written into a data file that can be accessed by the MCDS command file.
 
 Since the columns of the data frame had then been renamed, they could be inputted into the FIELDS command:
 
-```{r}
+```{r eval=FALSE}
 cat(paste("FIELDS=", fields_comb, ";", sep=""), 
       file=command.file.name, "\n", append=TRUE)
 ```
 
-One additional complication was the factor covariates must be specified in MCDS, however this is not required for MRDS, therefore there was no input specifying which fields are factors. When the levels of a factor are numeric, the `r as.factor()` function will not recognise it as a factor, therefore when inputting factor data the user must use characters as the levels. To identify and specify which covariates are factors and write a FACTOR command for each, the following code was used:
+One additional complication was the factor covariates must be specified in MCDS, however this is not required for MRDS, therefore there was no input specifying which fields are factors. When the levels of a factor are numeric, the as.factor() function will not recognise it as a factor, therefore when inputting factor data the user must use characters as the levels. To identify and specify which covariates are factors and write a FACTOR command for each, the following code was used:
 
-```{r}
+```{r eval=FALSE}
     factor_fields <- c()
     for(i in 1:length(colnames(data))){
       if(is.factor(data[,i]) && (TRUE %in% grepl(colnames(data)[i],covar_fields))){
@@ -146,14 +144,14 @@ One additional complication was the factor covariates must be specified in MCDS,
 
 Due to the hybrid formula/function notation used to specify dsmodel, the usual $ notation does not work to access the parameters. Instead, a fairly clunky method of accessing them which has been used in code elsewhere in the mrds package was used:
 
-```{r}
+```{r eval=FALSE}
   mod_paste <- paste(dsmodel)
   mod_vals <- try(eval(parse(text=mod_paste[2:length(modpaste)])))
 ```
 
 From this, the required information about the model specifications could be obtained to pass through to MCDS, such as the key function to be used:
 
-```{r}
+```{r eval=FALSE}
 cat("ESTIMATOR /KEY=", file=command.file.name, append=TRUE)
   if(mod_vals$key == "hn"){
     cat("HNORMAL", file=command.file.name, append=TRUE)
@@ -168,11 +166,11 @@ cat("ESTIMATOR /KEY=", file=command.file.name, append=TRUE)
 
 ### Rearranging Initial Values
 
-It is possible to enter initial values as part of the control input of MRDS, however accessing these values in a way that could be inputted into MCDS was challenging. The `r control$initial` input is a named list with three available parameters, `r $scale`, `r $shape`, and `r $adjustment`. The scale parameter will contain the initial values for any covariates in the key function, which must be inputted into the MCDS command first, before any initial values for the adjustment parameters.
+It is possible to enter initial values as part of the control input of MRDS, however accessing these values in a way that could be inputted into MCDS was challenging. The  initial input is a named list with three available parameters, scale,  shape, and adjustment. The scale parameter will contain the initial values for any covariates in the key function, which must be inputted into the MCDS command first, before any initial values for the adjustment parameters.
 
-In order to input the initial values in the same order as the covariates are specified in the covariate command, I created a string starting with `r control$initial$shape$` and concatenated the covariate name, then evaluated the text to access the initial value.
+In order to input the initial values in the same order as the covariates are specified in the covariate command, I created a string starting with "control$initial$shape$" and concatenated the covariate name, then evaluated the text to access the initial value.
 
-```{r}
+```{r eval=FALSE}
       inits <- c()
       for(i in 1:length(covars)){
         # find the index of the covariate field
@@ -187,7 +185,7 @@ In order to input the initial values in the same order as the covariates are spe
 
 When a covariate is a factor, an initial value must be given for each level. The order in which they are inputted varies between MRDS and MCDS, however the first level is absorbed for the analysis; this level must be inputted last in MCDS to be absorbed, so the initial value for the first factor level is placed at the end when listed in the /START switch in MCDS. In order to do this, I included an if statement in the above for loop which identified and dealt with factors:
 
-```{r}
+```{r eval=FALSE}
        if(TRUE %in% grepl(covar_fields[i],factor_fields)){
           for(j in 2:length(levels(data[,index]))){
             # create the text for the parameter that must be accessed
@@ -205,7 +203,7 @@ When a covariate is a factor, an initial value must be given for each level. The
 
 These could then be combined and inputted into the /START switch:
 
-```{r}
+```{r eval=FALSE}
 cat(paste(" /START=", paste(inits,collapse=","), sep=""), 
         file=command.file.name, append=TRUE)
 ```
