@@ -8,7 +8,7 @@ output: pdf_document
 
 ## Aim
 
-The Distance software, used to conduct analyses on datasets relating to animal abundance estimation, has multiple engines to perform analyses; the two engines of interest for this project were MCDS and MRDS. Both engines can be run from within the Distance software, however it can sometimes be useful to work directly with the code rather than running the analysis within Distance. In particular, running the same analysis in multiple engines may help determine which method of analysis is most appropriate. One issue that this raises is that the MCDS engines is written in Fortran, whereas MRDS is written in R, and each engine has different input formats, so direct comparison can be complicated and time consuming.\
+The Distance software, used to conduct analyses on datasets relating to animal abundance estimation, has multiple engines to perform analyses; the two engines of interest for this project were MCDS and MRDS. Both engines can be run from within the Distance software, however it can sometimes be useful to work directly with the code. In particular, running the same analysis in multiple engines may help determine which method of analysis is most appropriate. One issue that this raises is that the MCDS engines is written in Fortran, whereas MRDS is written in R, and each engine has different input formats, so direct comparison can be complicated and time consuming.
 
 The aim of this project was to write a function in R which would take the input in the format it is provided to MRDS, and use that input to create a command file that would run an equivalent analysis in MCDS.
 
@@ -27,7 +27,7 @@ meta.data=list(point=TRUE,width=5.0)
 Within MCDS, the TYPE command has three possible values, LINE, POINT, or CUE. MRDS has no way of specifying whether the input is from cue counts, so the function will only assign either POINT or LINE to the TYPE command. As the inputs were very similar, the code for this command was fairly simple:
 
 ```{r}
-if(meta.data$point == TRUE){
+  if(meta.data$point == TRUE){
     cat(paste("DISTANCE=RADIAL /UNITS='Meters' /WIDTH=", 
         meta.data$width, ";", sep=""), file=command.file.name, "\n", 
         append=TRUE)
@@ -44,9 +44,9 @@ Beyond this, the translation from one engine's input to the other was less direc
 
 ### Reformatting the Data
 
-In MRDS, the data is inputted as a data frame, however the MCDS engine requires a data file as its data input. Furthermore, MCDS has very strict requirements for which fields are present and what they are named, therefore it was necessary to rename required fields and remove all others from the dataframe.
+In MRDS, the data is inputted as a data frame, however the MCDS engine requires a data file as its data input. Furthermore, MCDS has very strict requirements for which fields are present and what they are named, therefore it was necessary to rename required fields and remove all others from the data frame.
 
-Firstly, since MRDS is used for Mark-Recapture surveys, the data produced often has multiple entries for each observed object, one for each observer and a column specifying whether the object was recorded by each observer. In MCDS, we are only interested in the observed objects, so much of this information about observers and whether each object was detected was redundant. To deal with this, first only the entries for observed objects were kept:
+Firstly, since MRDS is used for mark-recapture surveys, the data produced often has multiple entries for each observed object, one for each observer and a column specifying whether the object was recorded by each observer. In MCDS, we are only interested in the observed objects, so much of this information about observers and whether each object was detected was redundant. To deal with this, first only the entries for observed objects were kept:
 
 ```{r}
 data <- data[data$detected==1,]
@@ -73,7 +73,7 @@ if(TRUE %in% grepl("^object$",tolower(colnames(data)))){
 
 After this, the required fields were identified. MCDS requires that there are fields for sample label, sample effort, and distance, named SMP_LABEL, SMP_EFFORT, and DISTANCE respectively. If the data is from clusters, then SIZE is also a required field. Additionally, STR_LABEL and STR_AREA may be specified; all other fields must be covariates in the model.
 
-In order to allow for slight variation in the data format, I allowed for different names for these fields, based upon the example data given in Distance; this also made testing the code with that data much easier. Therefore, the code was able to identify which field in the dataframe corresponded to each required field, and renamed them if necessary. For the three required fields the function also created a dummy field if it were not present in the initial dataset. An example of this for the SMP_LABEL field:
+In order to allow for slight variation in the data format, I allowed for different names for these fields, based upon the example data given in Distance; this also made testing the code with that data much easier. Therefore, the code was able to identify which field in the data frame corresponded to each required field, and renamed them if necessary. For the three required fields the function also created a dummy field if it were not present in the initial dataset. An example of this for the SMP_LABEL field:
 
 ```{r}
 # find if SMP_LABEL is a field; if not, add it
@@ -86,39 +86,47 @@ In order to allow for slight variation in the data format, I allowed for differe
   }
 ```
 
-Once these specified fields had been identified, only the covariate fields were left to identify. To do this, the covariates were extracted from the model inputted in dsmodel and the matching fields were identified. MCDS does not allow any of the aforementioned required fields to be covariates, with the excption of SIZE, so an additional check was included to ensure that this did not happen:
+Once these specified fields had been identified, only the covariate fields were left to identify. To do this, the covariates were extracted from the model inputted in dsmodel and the matching fields were identified. MCDS does not allow any of the aforementioned required fields to be covariates, with the execption of SIZE, so an additional check was included to ensure that this did not happen:
 
 ```{r}
+    # extracting the list of covariates
     covars <- all.vars(dsmodel)
+    # creating a list of the fields for each covariate
     covar_fields <- rep("",length(covars))
     for(i in 1:length(covars)){
+      # identifying the field name for each covariate
       index <- grep(covars[i],tolower(colnames(data)))
       covar_fields[i] <- colnames(data)[index]
     }
     # the required fields cannot be covariates in the model, with the exception of size
-    if(length(intersect(req_fields,covar_fields)) > 0){
+    if(length(intersect(tolower(req_fields),tolower(covar_fields))) > 0){
       if(TRUE %in% grepl("size",tolower(covar_fields))){
+        # specify whether SIZE is a covariate
         size_cov <- TRUE
       }
+      # remove any required fields from the list of covariates
       covar_fields <- covar_fields[! covar_fields %in% intersect(req_fields,covar_fields)]
+    }else{
+      size_cov <- FALSE
     }
     # add covariates to the fields that are kept for analysis
     req_fields <- c(req_fields,covar_fields)
-    if(size_covar == TRUE){
+    # if SIZE is a covariate, add it back to the list of covariates
+    if(size_cov == TRUE){
       covar_fields <- append(covar_fields,"SIZE")
     }
 ```
 
 The variable req_fields was then used to specify which fields were to be kept in the data used for analysis with the line `r data <- data[req_fields]`. The data could then be written into a data file that can be accessed by the MCDS command file.
 
-Since the columns of the dataframe had then been renamed, they could be inputted into the FIELDS command:
+Since the columns of the data frame had then been renamed, they could be inputted into the FIELDS command:
 
 ```{r}
 cat(paste("FIELDS=", fields_comb, ";", sep=""), 
       file=command.file.name, "\n", append=TRUE)
 ```
 
-One additional complication was the factor covariates must be specified in MCDS, however this is not required for MRDS, therefore there was no input specifying which fields are factors. When the levels of a factor are numeric, the `r as.factor()` will not recognise it as a factor, therefore when inputting factor data the user must use characters as the levels. To identify and specify which covariates are factors and write a FACTOR command for each, the following code was used:
+One additional complication was the factor covariates must be specified in MCDS, however this is not required for MRDS, therefore there was no input specifying which fields are factors. When the levels of a factor are numeric, the `r as.factor()` function will not recognise it as a factor, therefore when inputting factor data the user must use characters as the levels. To identify and specify which covariates are factors and write a FACTOR command for each, the following code was used:
 
 ```{r}
     factor_fields <- c()
@@ -202,7 +210,7 @@ cat(paste(" /START=", paste(inits,collapse=","), sep=""),
         file=command.file.name, append=TRUE)
 ```
 
-The full code can be found in the repository:
+The full code can be found in the repository: https://github.com/jonah417/summer_project
 
 ## Next Steps
 
@@ -210,7 +218,9 @@ There are still a few issues with this code, and areas I unfortunately did not h
 
 Currently the function outputs the file name of the command file, however I was not able to access and run the MCDS engine with this command file from within R itself. While testing the code, I generated the file in R and then downloaded it to my own device to test it in MCDS. In order to conduct comparisons more easily, it would be ideal if it were possible to run the command file in MCDS from R.
 
-There is also currently no way of specifying data where TYPE=LINE but DISTANCE=RADIAL; a potential way to include this may be to check if there is a column within the dataset for the angle, which would be a required column in MCDS in this case, however that may not be a watertight way to identify the input type correctly. There is also currently no way of specifying if cue counts were used, therefore TYPE=CUE is never used in this function.
+There is also currently no way of specifying data where TYPE=LINE but DISTANCE=RADIAL. A potential way to include this may be to check if there is a column within the dataset for the angle, which would be a required column in MCDS in this case, however that may not be a watertight way to identify the input type correctly. There is also currently no way of specifying if cue counts were used, therefore TYPE=CUE is never used in this function.
 
 Additionally, it would be beneficial to perform more test on the code. I was able to test some standard inputs, as well as testing that the function deals with incomplete input (for example models with no adjustment parameters, and empty control inputs), however more testing of fringe cases should be considered.
+
+Finally, the code desperately wants to be modular; this is something I would like to try to do in future.
 
