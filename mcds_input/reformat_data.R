@@ -3,6 +3,10 @@
 # This functions ensures that the data file that is used to create the commands
 # in the command file is in the correct format
 
+# Inputs:
+# data - the original dataframe to be reformatted
+# dsmodel - the model specifying the covariates to be included for analysis
+
 reformat_data <- function(data, dsmodel){
   # firstly, identifying if the data has multiple observers
   if(TRUE %in% grepl("^detected$",tolower(colnames(data)))){
@@ -88,13 +92,8 @@ reformat_data <- function(data, dsmodel){
   # remove all non-essential columns from the dataset
   data <- data[req_fields]
   
-  # create data file to pass to mcds
-  data.file.name <- tempfile(pattern="data", tmpdir=directory,
-                             fileext=".txt")
-  data.file.name <- gsub("/","\\\\",data.file.name)
-  file.create(data.file.name)
-  write.table(data, file=data.file.name, col.names=FALSE, 
-              row.names=FALSE, sep="\t")
+  # return reformatted dataframe
+  return(data)
 }
 
-# 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
+# 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

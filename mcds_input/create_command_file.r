@@ -29,6 +29,8 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   cat("None", file=command.file.name, "\n", append=TRUE)
   cat("None", file=command.file.name, "\n", append=TRUE)
   
+  # START FUNCTION
+  
   # removing irrelevant data
   # combine data from multiple observers
   data <- data[data$detected==1,]
@@ -132,6 +134,9 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   
   # remove all non-essential columns from the dataset
   data <- data[req_fields]
+  
+  # END FUNCTION
+  
   
   # create data file to pass to mcds
   data.file.name <- tempfile(pattern="data", tmpdir=directory,
