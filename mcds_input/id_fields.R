@@ -12,6 +12,10 @@ id_fields <- function(data_cols, pot_names) {
   name_pres <- FALSE
   # convert vector of potential names to lower case for ease of comparison
   pot_names <- tolower(pot_names)
+  # to ensure columns that include parts of other column names aren't mistakenly
+  # identified
+  pot_names <- gsub("^","^",pot_names)
+  pot_names <- gsub("$","$",pot_names)
   # check through each of the potential column names to identify if it is used
   for(i in 1:length(data_cols)) {
     if(TRUE %in% grepl(pot_names[i],tolower(data_cols))) {
