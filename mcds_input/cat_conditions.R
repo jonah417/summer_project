@@ -1,4 +1,4 @@
-# Switch Options Function
+# Concatenate with Conditions Function
 
 # A function which allows different lines to be written to the command file
 # depending on the mrds input specifications
@@ -12,7 +12,7 @@
 # line; corresponds to the new_line input of the cat_file() function
 
 
-switch_options <- function(switch_input, conditions=c(TRUE,FALSE), results, new_line=TRUE) {
+cat_conditions <- function(switch_input, conditions=c(TRUE,FALSE), results, new_line=TRUE) {
   # find the index of the condition which is found to be met
   result_index <- switch(switch_input, conditions)
   # find the corresponding response
