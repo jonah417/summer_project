@@ -70,6 +70,7 @@ reformat_data <- function(data, dsmodel){
     }
     # the required fields cannot be covariates in the model, with the exception of size
     if(length(intersect(tolower(req_fields),tolower(covar_fields))) > 0){
+      #??can this be done with id_fields?
       if(TRUE %in% grepl("size",tolower(covar_fields))){
         # specify whether SIZE is a covariate
         size_cov <- TRUE
@@ -95,5 +96,3 @@ reformat_data <- function(data, dsmodel){
   # return reformatted dataframe
   return(data)
 }
-
-# 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
