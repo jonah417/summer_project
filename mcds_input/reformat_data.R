@@ -43,14 +43,14 @@ reformat_data <- function(data, dsmodel){
   # for each of the required fields, find the column and add in if not present
   for(i in 1:length(req_fields)) {
     # record which column the ith required field is found in the dataframe
-    fields_index[i] <- id_fields(colnames(data),req_fields[[i]][[1]],req_fields[[i]][[2]])
+    fields_index[i] <- id_fields(colnames(data),req_fields[[i]][[2]])
     # if the field is not present but is required, add in a dummy variable
     if(fields_index$index[i] == FALSE && req_fields[[i]][[3]] == TRUE) {
       data$new <- rep(1,nrow(data))
       tail(colnames(data),1) <- req_fields[[i]][[1]]
     } else {
       # rename the column to match the name required by MCDS
-      colnames(data)[fields_index[i]] <- req_fields[[i]][[1]]
+      colnames(data)[strtoi(fields_index[i])] <- req_fields[[i]][[1]]
     }
   }
   
