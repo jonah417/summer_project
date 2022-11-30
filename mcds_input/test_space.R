@@ -13,7 +13,18 @@ command.file.name <- tempfile(pattern="cmdtmp", tmpdir=directory,
 command.file.name <- gsub("/","\\\\",command.file.name)
 file.create(command.file.name)
 
-
+# TESTS
+# check that id_fields works
+#   - test with simple strings and one iteration
+#   - test with loops
+# check that cat_file works
+#   - create a testing space where a command file is generated and written to
+#   - test with one piece of text
+#   - test with a vector of text
+#   - check the new line switch
+# check that cat_conditions works
+#   - create a testing environment with sample meta.data and a command file
+#   - test the simple if statements
 
 # TESTS
 # testing the id_fields function works
@@ -56,3 +67,51 @@ for(i in 1:length(req_fields)) {
   }
 }
 fields
+
+# test cat_file
+cat_file(c("good thanks ","muy bien"))
+read.delim(command.file.name)
+
+# bear in mind that the new line code relates to the line after it
+
+# test cat_conditions
+
+# creating test meta.data
+test_meta <- list(point = TRUE, width = "34")
+test_cat_res <- list(c("DISTANCE=RADIAL /UNITS='Meters' /WIDTH=", 
+                                   test_meta$width, ";"), 
+                  c("DISTANCE=PERP /UNITS='Meters' /WIDTH=", 
+                    test_meta$width, ";"))
+
+cat_conditions(switch_input = test_meta$point, results = test_cat_res)
+read.delim(command.file.name)
+
+if(meta.data$point == TRUE){
+  cat(paste("DISTANCE=RADIAL /UNITS='Meters' /WIDTH=", 
+            meta.data$width, ";", sep=""), file=command.file.name, "\n", 
+      append=TRUE)
+  cat("TYPE=POINT;", file=command.file.name, "\n", append=TRUE)
+}else{
+  cat(paste("DISTANCE=PERP /UNITS='Meters' /WIDTH=", 
+            meta.data$width, ";", sep=""), file=command.file.name, "\n", 
+      append=TRUE)
+  cat("TYPE=LINE;", file=command.file.name, "\n", append=TRUE)
+}
+
+
+
+
+opt_list <- list(list(var=meta.data$point,
+                             results=list("TYPE=POINT;","TYPE=LINE;")),
+                 point2=list(var=meta.data$point,
+                             results=list(c("DISTANCE=RADIAL /UNITS='Meters' /WIDTH=", 
+                                            meta.data$width, ";"), 
+                                          c("DISTANCE=PERP /UNITS='Meters' /WIDTH=", 
+                                            meta.data$width, ";"))),
+                 cluster=list(var=cluster,
+                              results=list("OBJECT=CLUSTER;","OBJECT=SINGLE;")),
+                 debug=list(var=control$debug,
+                            results=list("DEBUG=ON;","")))
+
+
+

@@ -10,10 +10,11 @@
 cat_file <- function(text, new_line=TRUE) {
   # in case the text input is a vector, paste the elements to create the final string
   text <- paste(text, collapse="")
+  print(text)
   # add the text to the command file, adding a line break when specified
   if(new_line == TRUE) {
     cat(text, file=command.file.name, "\n", append=TRUE)
   }else{
-    cat(text, file=command.file.name, append=TRUE)
+    cat(text, file=command.file.name, sep="", append=TRUE)
   }
 }

@@ -175,6 +175,7 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
       cat("DEBUG=ON;", file=command.file.name, "\n", append=TRUE)
     }
   }
+  
   if(is.null(control$showit) == FALSE){
     output_info_levels <- c("SUMMARY","RESULTS","SELECTION","ALL")
     specified_output_level <- output_info_levels[control$showit+1]
@@ -188,6 +189,8 @@ create_command_file <- function(dsmodel=call(),mrmodel=call(),data,
   cat("END;", file=command.file.name, "\n", append=TRUE)
   
   # DATA section
+  
+  # all one function without changes, but consider outputs
   
   cat("DATA /STRUCTURE=FLAT;", file=command.file.name, "\n", 
       append=TRUE)
