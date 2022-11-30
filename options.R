@@ -1,36 +1,38 @@
 # Options Section
 
-# rewriting the following code with functions I've developed
-if(cluster == TRUE){
-  cat("OBJECT=CLUSTER;", file=command.file.name, "\n", append=TRUE)
-}else{
-  cat("OBJECT=SINGLE;", file=command.file.name, "\n", append=TRUE)
+# A function which writes the OPTIONS section to the command file, based upon
+# the mrds input
+
+# Inputs:
+#  - meta.data: a list as found in mrds
+#  - control: a list as found in mrds
+
+options <- function(meta.data, control) {
+  # starting the options section within the command file
+  cat("OPTIONS;", file=command.file.name, "\n", append=TRUE)
+  
+  # creating a list with all the options and results
+  opt_list <- list(point1=list(var=meta.data$point,
+                               results=list("TYPE=POINT;","TYPE=LINE;")),
+                   point2=list(var=meta.data$point,
+                              results=list(c("DISTANCE=RADIAL /UNITS='Meters' /WIDTH=", 
+                                             meta.data$width, ";"), 
+                                           c("DISTANCE=PERP /UNITS='Meters' /WIDTH=", 
+                                             meta.data$width, ";"))),
+                   cluster=list(var=cluster,
+                                results=list("OBJECT=CLUSTER;","OBJECT=SINGLE;")),
+                   debug=list(var=control$debug,
+                              results=list("DEBUG=ON;","")))
+  
+  # looping through each of the options and concatenating the relevant commands
+  for(i in 1:length(opt_list)) {
+    # inputting the relevant data to the cat_conditions function
+    cat_conditions(opt_list[[i]][[1]],opt_list[[i]][[2]])
+  }
+  
+  # the user will specify the adjustment term selection
+  cat("SELECTION=SPECIFY;", file=command.file.name, "\n", 
+      append=TRUE)
+  # ending the options section
+  cat("END;", file=command.file.name, "\n", append=TRUE)
 }
-
-# define the value being checked
-input <- cluster
-# define the options to be concatenated
-cat_options <- c("OBJECT=CLUSTER", "OBJECT=SINGLE")
-# figure out which thing to concatenate
-switch_options(switch_input = input, results = cat_options)
-
-# next steps:
-# test these functions
-# try lapply across a list of conditions to be checked
-# figure out if there's a way to remove the repetition of "OBJECT=..." etc
-
-# TESTS
-# check that id_fields works
-#   - test with simple strings and one iteration
-#   - test with loops
-#   - test with real data
-#   - test the required switch works
-# check that cat_file works
-#   - create a testing space where a command file is generated and written to
-#   - test with one piece of text
-#   - test with a vector of text
-#   - check the new line switch
-# check that input_options works
-#   - create a testing environment with sample meta.data and a command file
-#   - test the simple if statements
-
