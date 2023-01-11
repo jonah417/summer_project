@@ -88,11 +88,13 @@ reformat_data <- function(data, dsmodel){
     }
   }else{
     covar_pres <- FALSE
+    covar_fields <- c()
   }
   
   # remove all non-essential columns from the dataset
   data <- data[req_fields]
   
-  # return reformatted dataframe
-  return(data)
+  # return reformatted dataframe and the information about covariates
+  output <- list(data, covar_pres, covar_fields)
+  return(output)
 }
