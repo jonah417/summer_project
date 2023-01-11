@@ -9,7 +9,7 @@
 
 options <- function(meta.data, control) {
   # starting the options section within the command file
-  cat("OPTIONS;", file=command.file.name, "\n", append=TRUE)
+  cat_file("OPTIONS;")
   
   # creating a list with all the options and results
   opt_list <- list(point1=list(var=meta.data$point,
@@ -31,8 +31,7 @@ options <- function(meta.data, control) {
   }
   
   # the user will specify the adjustment term selection
-  cat("SELECTION=SPECIFY;", file=command.file.name, "\n", 
-      append=TRUE)
+  cat_file("SELECTION=SPECIFY;")
   # ending the options section
-  cat("END;", file=command.file.name, "\n", append=TRUE)
+  cat_file("END;")
 }

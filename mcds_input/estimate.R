@@ -8,10 +8,10 @@
 
 estimate <- function(dsmodel, covar_pres, covar_fields, meta.data) {
   # starting the estimator section
-  cat("ESTIMATE;", file=command.file.name, "\n", append=TRUE)
+  cat_file("ESTIMATE")
   
   # we are only interested in the estimates for detection probability
-  cat("DETECTION ALL;", file=command.file.name, "\n", append=TRUE)
+  cat_file("DETECTION ALL;")
   
   # a messy way of accessing the model parameters
   mod_paste <- paste(dsmodel)
@@ -30,7 +30,7 @@ estimate <- function(dsmodel, covar_pres, covar_fields, meta.data) {
   ds_opts <- list(key_opts,adj_opts,scale_opts)
   
   # start the estimator line and specify the key function
-  cat("ESTIMATOR /KEY=", file=command.file.name, append=TRUE)
+  cat_file("ESTIMATOR /KEY=", new_line = FALSE)
   # loop through and concatenate the correct line based upon the input
   for(i in 1:length(ds_opts)){
     cat_conditions(opt_list[[i]][[1]],opt_list[[i]][[3]],opt_list[[i]][[2]],FALSE)
@@ -40,21 +40,21 @@ estimate <- function(dsmodel, covar_pres, covar_fields, meta.data) {
   if(is.null(mod_vals$adj.series) == FALSE){
     adj_pres <- TRUE
     # specify the order of adjustment terms
-    cat(paste(" /ORDER=", paste(mod_vals$adj.order,collapse=","),sep=""), 
-        file=command.file.name, append=TRUE)
+    cat_file(paste(" /ORDER=", paste(mod_vals$adj.order,collapse=","),sep=""), 
+        new_line=FALSE)
     # specify the number of adjustment parameters
-    cat(paste(" /NAP=", length(mod_vals$adj.order), sep=""), 
-        file=command.file.name, append=TRUE)
+    cat_file(paste(" /NAP=", length(mod_vals$adj.order), sep=""), 
+        new_line=FALSE)
   }
   
   # specify which fields are covariates
   if(covar_pres == TRUE){
-    cat(paste(" /COVARIATES=", paste(covar_fields,collapse=","), sep=""), 
-        file=command.file.name, append=TRUE)
+    cat_file(paste(" /COVARIATES=", paste(covar_fields,collapse=","), sep=""), 
+        new_line=FALSE)
   }
   
   # ending the ESTIMATOR line
-  cat(";", file=command.file.name, "\n", append=TRUE)
+  cat_file(";")
   
   # specifying monotonicity constraint
   if(is.null(meta.data$mono.strict)){
@@ -65,29 +65,29 @@ estimate <- function(dsmodel, covar_pres, covar_fields, meta.data) {
   }
   
   if(meta.data$mono.strict == TRUE){
-    cat("MONOTONE=STRICT;", file=command.file.name, "\n", append=TRUE)
+    cat_file("MONOTONE=STRICT;")
   }else if(meta.data$mono == TRUE){
-    cat("MONOTONE=WEAK;", file=command.file.name, "\n", append=TRUE)
+    cat_file("MONOTONE=WEAK;")
   }else{
-    cat("MONOTONE=NONE;", file=command.file.name, "\n", append=TRUE)
+    cat_file("MONOTONE=NONE;")
   }
   
   # specifying the truncation distance
-  cat(paste("DISTANCE /WIDTH=",meta.data$width,sep=""), 
-      file=command.file.name, append=TRUE)
+  cat_file(paste("DISTANCE /WIDTH=",meta.data$width,sep=""), 
+      new_line=FALSE)
   # dealing with grouped data
   if(is.null(meta.data$binned) == FALSE){
     if(meta.data$binned == TRUE){
-      cat(paste(" /INTERVALS=", paste(meta.data$breaks, collapse=","),
-                sep=""), file=command.file.name, append=TRUE)
+      cat_file(paste(" /INTERVALS=", paste(meta.data$breaks, collapse=","),
+                sep=""), new_line=FALSE)
     }
   }
   
   # specifying left trunction distance, if included in the input
   if(is.null(meta.data$left) == FALSE){
-    cat(paste(" /LEFT=", meta.data$left, sep=""), 
-        file=command.file.name, append=TRUE)
+    cat_file(paste(" /LEFT=", meta.data$left, sep=""), 
+        new_line=FALSE)
   }
-  cat(";", file=command.file.name, "\n", append=TRUE)
-  cat("END;", file=command.file.name, append=TRUE)
+  cat_file(";")
+  cat_file("END;")
 }
