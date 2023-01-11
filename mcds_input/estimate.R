@@ -2,7 +2,7 @@
 
 # Inputs
 #  - dsmodel
-#  - covar_pres (?may need to be made into a global variable from reformat_data)
+#  - covar_pres
 #  - covar_fields
 #  - meta.data
 
