@@ -1,0 +1,101 @@
+---
+title: "StARIS_report"
+output: html_document
+author: Jonah McArthur
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Aim
+
+During summer 2022, I completed a project working with the Distance for Windows software, with the aim of writing a function in R which would allow more direct comparison between analyses performed using the MRDS and MCDS engines within the software. this function took the input in the format it is provided to MRDS, and used that input to create a command file that would run an equivalent analysis in MCDS. The aim of this project was to work with the function I previously created and improve its efficiency.
+
+## Method
+
+In preparation for the coding segment of this project, I read through resources on efficiency and modularity provided by Dr Miller, in order to improve my understanding of the methods by which the code could be improved.
+
+Based upon these methods and preliminary discussions with Dr Miller, I then proceeded to plan the next steps for implementing these ideas into the existing code.
+
+The command file that the code is designed to create is split into four sections: the header, the OPTIONS section, the DATA section, and the ESTIMATE section, each of which had its own section within the create_command_file function. Within this function, there was also a large section dedicated to reformatting the data to resemble the MCDS data input more closely. Each of these sections was relatively self contained, so the first step of the planning was to create functions that contained the code for each section, with the aim of allowing each section to be tested individually and making the create_command_file function much more readable.
+
+Within the overall function, there are also many cases of repeated processes. I identified these and designed functions that could be called multiple times, to remove the unnecessary repetition and allow for more consistency throughout the code and reduce the occurence of bugs.
+
+### Splitting the code into sections
+
+The header section only contained six lines, so was not separated out into its own function. The four remaining sections were written into their own functions: reformat_data, options, data_section, and estimate.
+
+When analysing the inputs and outputs of each function, it became clear that in almost every case the functions solely required inputs from the global (function?) environment, and did not output anything, but instead simply performed processes, with the exception of the reformat_data section, which output the new data frame (?) to be used in all future functions. There was one circumstance where variables were defined in the local environment of the reformat_data function which were required in both data_section and estimate; this was the variables covar_pres and covar_fields, which contained information gleaned about the presence of covariates within the model. In order to ensure that these could be used in data_section and estimate, their were returned from reformat_data alongside the new data frame and used to define the variables within the global environment.
+
+Include the return line and the redefining variables line from the main function.
+
+### Defining new functions
+
+There were three processes that were found to be repeated throughout the code that were then written into their own functions.
+
+The first was the concatenate lines used throughout the code to concatenate relevant strings to the command file:
+
+Include cat line example
+
+They all shared at least two inputs - file=command.file.name and append=TRUE - and many included "\n" to signal a line break, therefore the only distinct part of each cat() call was the string itself. For this reason, I wrote the cat_file() function, which had only two inputs: a string of text to be concatenated to the file, and a boolean to determine whether there should be a line break following the text, which had default TRUE. The other two inputs of the cat() function were already specified in the cat_file function, so this reduced most cat() calls to one or at most two inputs, removing repitition and making the code considerably easier to read, as there were fewer long cat() lines.
+
+Include cat code example.
+
+The second function created was the cat_conditions() function, which could be used where a variable had multiple specified potential values, and the text concatenated to the command file depended upon which value the variable had. This situation occurred frequently within the OPTIONS and ESTIMATE sections:
+
+example code
+
+The cat_conditions() function has four inputs:
+ - switch_input: the variable whose value was being checked
+ - conditions: a vector of the potential values the switch_input was expected to take; this has the default c(TRUE, FALSE) as multiple inputs were found to have these specified conditions
+ - results: a vector of strings to be concatenated to the command file depending on the value switch_input was found to have, with the nth entry corresponding to the nth entry of conditions
+ - new_line: a boolean specifying whether there should be a line break following the string
+
+The cat_conditions function then compares switch_input to conditions to find the index at which it occurs, and therefore identifies the correct response string, and then uses cat_file() to concatenate the response.
+
+Code example
+
+The final function was the id_fields, used in reformat_data to identify columns of the data frame based on a vector of potential names it is suspected to have. This is to deal with the situation where the column names of the data frame do not match those recognised by MCDS. For example, in some input data the field used for effort is called Search.time, whereas MCDS only recognises the field if it is named SMP_EFFORT.
+
+This function has two inputs:
+ - data_cols: the original column names of the data frame
+ - pot_names: a vector containing the potential names that are expected for a specific field, for example c("effort","SMP_EFFORT", "Search.time") for the SMP_EFFORT field.
+ 
+The function will identify the column that has one of the expected names, and outputs the index of that column.
+
+Function code
+
+This was then used in the reformat data function to reduce the amount of repetition.
+
+Example code
+
+### Combining the new functions
+
+These functions were combined into a new fucntion named create_command_file_mod(), which can be found:
+
+## Conclusion and Next Steps
+
+The creation of the new functions has drastically reduced the amount of repetition in the create_command_file function, therefore making it more efficient and more readable. In addition, it is now possible to test, debug, and alter individual sections of the code independently, therefore making the code more robust.
+
+Unfortunately, I ran out of time within my allotted 15 hours to complete testing of the function, so although the individual functions have been tested and appear to work as intended, the overall function still requires testing.
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
