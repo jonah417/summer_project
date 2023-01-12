@@ -184,4 +184,8 @@ Unfortunately, I ran out of time within my allotted 15 hours to complete testing
 
 The following resources were sent to me by Dr Miller to give background information on the methods used to improve code.
 
-<http://adv-r.had.co.nz/Functional-programming.html> <https://stat545.com/functions-part1.html>
+<http://adv-r.had.co.nz/Functional-programming.html> 
+
+<https://stat545.com/functions-part1.html>
+
+
