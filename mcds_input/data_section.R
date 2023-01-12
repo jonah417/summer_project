@@ -1,6 +1,6 @@
 # Data Section Function
 
-data <- function(data, covar_pres, covar_fields) {
+data_section <- function(data, covar_pres, covar_fields) {
   cat_file("DATA /STRUCTURE=FLAT;")
   
   # change all fields to upper case and combine to one string

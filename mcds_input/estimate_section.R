@@ -6,7 +6,7 @@
 #  - covar_fields
 #  - meta.data
 
-estimate <- function(dsmodel, covar_pres, covar_fields, meta.data) {
+estimate_section <- function(dsmodel, covar_pres, covar_fields, meta.data) {
   # starting the estimator section
   cat_file("ESTIMATE")
   

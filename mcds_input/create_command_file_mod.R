@@ -8,6 +8,8 @@
 
 create_command_file_mod <- function(dsmodel=call(),mrmodel=call(),data,
                                 method,meta.data,control) {
+  print(environment())
+  
   # create a temporary directory
   directory <- tempdir()
   
@@ -45,7 +47,7 @@ create_command_file_mod <- function(dsmodel=call(),mrmodel=call(),data,
               row.names=FALSE, sep="\t")
   
   # OPTION section
-  options(meta.data, control)
+  options_section(meta.data, control)
   
   # DATA section
   data_section(data, covar_pres, covar_fields)
@@ -56,7 +58,7 @@ create_command_file_mod <- function(dsmodel=call(),mrmodel=call(),data,
   cat_file("END;")
   
   # ESTIMATE section
-  estimate(dsmodel, covar_pres, covar_fields, meta.data)
+  estimate_section(dsmodel, covar_pres, covar_fields, meta.data)
   
   # output final command file
   return(command.file.name)

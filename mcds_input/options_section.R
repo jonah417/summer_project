@@ -7,7 +7,7 @@
 #  - meta.data: a list as found in mrds
 #  - control: a list as found in mrds
 
-options <- function(meta.data, control) {
+options_section <- function(meta.data, control) {
   # starting the options section within the command file
   cat_file("OPTIONS;")
   
